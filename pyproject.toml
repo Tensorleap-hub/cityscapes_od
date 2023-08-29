@@ -24,7 +24,8 @@ onnx2keras = "^0.0.24"
 opencv-python = "^4.8.0.74"
 webcolors = "^1.13"
 tf = "^1.0.0"
-code-loader = "^0.2.90"
+code-loader = "1.0.8"
+code-loader-helpers = "1.0.4"
 
 
 [build-system]
