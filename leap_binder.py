@@ -277,5 +277,5 @@ for id in CATEGORIES_id_no_background:
     class_name = Cityscapes.get_class_name(id)
     leap_binder.add_custom_metric(get_class_mean_iou(id), f"iou_class_{class_name}")
 
-
-
+if __name__ == '__main__':
+    leap_binder.check()
