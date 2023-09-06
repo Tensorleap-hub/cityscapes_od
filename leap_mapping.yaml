@@ -1,0 +1,727 @@
+decorators:
+  - operation: Input
+    data:
+      type: Input
+      output_name: non_normalized_image
+    id: '94'
+    inputs: {}
+    outputs:
+      non_normalized_image:
+        - inputKey: input
+          operation: Permute
+          name: permute_133
+          id: '93'
+        - inputKey: data
+          operation: Visualizer
+          id: '339'
+  - operation: CustomLoss
+    data:
+      arg_names:
+        - bb_gt
+        - y_pred
+      name: od_loss
+      selected: od_loss
+      type: CustomLoss
+    id: '330'
+    inputs:
+      y_pred:
+        - outputKey: merged
+          operation: Concatenate
+          name: output
+          id: '1'
+      bb_gt:
+        - outputKey: bbox
+          operation: GroundTruth
+          id: '332'
+    outputs:
+      loss:
+        - inputKey: '0'
+          operation: Adam
+          id: '333'
+  - operation: Input
+    data:
+      type: Input
+      output_name: non_normalized_image
+      selected: non_normalized_image
+    id: '331'
+    inputs: {}
+    outputs:
+      non_normalized_image:
+        - inputKey: image
+          operation: Visualizer
+          id: '334'
+        - inputKey: image
+          operation: Visualizer
+          id: '335'
+        - inputKey: image
+          operation: Visualizer
+          id: '340'
+        - inputKey: image
+          operation: Visualizer
+          id: '341'
+  - operation: GroundTruth
+    data:
+      type: GroundTruth
+      output_name: bbox
+      selected: bbox
+    id: '332'
+    inputs: {}
+    outputs:
+      bbox:
+        - inputKey: bb_gt
+          operation: Visualizer
+          id: '334'
+        - inputKey: bb_gt
+          operation: Metric
+          id: '336'
+        - inputKey: bb_gt
+          operation: Metric
+          id: '337'
+        - inputKey: bb_gt
+          operation: Metric
+          id: '338'
+        - inputKey: bb_gt
+          operation: Visualizer
+          id: '341'
+        - inputKey: y_true
+          operation: Metric
+          id: '345'
+        - inputKey: y_true
+          operation: Metric
+          id: '350'
+        - inputKey: y_true
+          operation: Metric
+          id: '349'
+        - inputKey: y_true
+          operation: Metric
+          id: '344'
+        - inputKey: y_true
+          operation: Metric
+          id: '348'
+        - inputKey: y_true
+          operation: Metric
+          id: '351'
+        - inputKey: y_true
+          operation: Metric
+          id: '343'
+        - inputKey: y_true
+          operation: Metric
+          id: '346'
+        - inputKey: y_true
+          operation: Metric
+          id: '347'
+        - inputKey: y_true
+          operation: Metric
+          id: '342'
+        - inputKey: y_true
+          operation: Metric
+          id: '356'
+        - inputKey: y_true
+          operation: Metric
+          id: '355'
+        - inputKey: y_true
+          operation: Metric
+          id: '352'
+        - inputKey: y_true
+          operation: Metric
+          id: '353'
+        - inputKey: y_true
+          operation: Metric
+          id: '354'
+        - inputKey: y_true
+          operation: Metric
+          id: '357'
+        - inputKey: y_true
+          operation: Metric
+          id: '358'
+        - inputKey: y_true
+          operation: Metric
+          id: '359'
+        - inputKey: y_true
+          operation: Metric
+          id: '360'
+        - inputKey: bb_gt
+          operation: CustomLoss
+          id: '330'
+  - operation: Adam
+    data:
+      type: Optimizer
+      custom_input_keys:
+        - 333-0
+    id: '333'
+    inputs:
+      '0':
+        - outputKey: loss
+          operation: CustomLoss
+          id: '330'
+    outputs: {}
+  - operation: Visualizer
+    data:
+      type: Visualizer
+      name: bb_gt_decoder
+      visualizer_name: bb_gt_decoder
+      visualizer_type: ImageWithBBox
+      arg_names:
+        - image
+        - bb_gt
+      user_unique_name: bb_gt_decoder
+    id: '334'
+    inputs:
+      image:
+        - outputKey: non_normalized_image
+          operation: Input
+          id: '331'
+      bb_gt:
+        - outputKey: bbox
+          operation: GroundTruth
+          id: '332'
+    outputs: {}
+  - operation: Visualizer
+    data:
+      type: Visualizer
+      name: bb_decoder
+      visualizer_name: bb_decoder
+      visualizer_type: ImageWithBBox
+      arg_names:
+        - image
+        - predictions
+      user_unique_name: bb_decoder
+    id: '335'
+    inputs:
+      predictions:
+        - outputKey: merged
+          operation: Concatenate
+          name: output
+          id: '1'
+      image:
+        - outputKey: non_normalized_image
+          operation: Input
+          id: '331'
+    outputs: {}
+  - operation: Metric
+    data:
+      type: Metric
+      name: Regression_metric
+      metric_name: Regression_metric
+      arg_names:
+        - bb_gt
+        - detection_pred
+      user_unique_name: Regression_metric
+    id: '336'
+    inputs:
+      detection_pred:
+        - outputKey: merged
+          operation: Concatenate
+          name: output
+          id: '1'
+      bb_gt:
+        - outputKey: bbox
+          operation: GroundTruth
+          id: '332'
+    outputs: {}
+  - operation: Metric
+    data:
+      type: Metric
+      name: Classification_metric
+      metric_name: Classification_metric
+      arg_names:
+        - bb_gt
+        - detection_pred
+      user_unique_name: Classification_metric
+    id: '337'
+    inputs:
+      detection_pred:
+        - outputKey: merged
+          operation: Concatenate
+          name: output
+          id: '1'
+      bb_gt:
+        - outputKey: bbox
+          operation: GroundTruth
+          id: '332'
+    outputs: {}
+  - operation: Metric
+    data:
+      type: Metric
+      name: Objectness_metric
+      metric_name: Objectness_metric
+      arg_names:
+        - bb_gt
+        - detection_pred
+      user_unique_name: Objectness_metric
+    id: '338'
+    inputs:
+      detection_pred:
+        - outputKey: merged
+          operation: Concatenate
+          name: output
+          id: '1'
+      bb_gt:
+        - outputKey: bbox
+          operation: GroundTruth
+          id: '332'
+    outputs: {}
+  - operation: Visualizer
+    data:
+      type: Visualizer
+      name: Image
+      visualizer_name: Image
+      visualizer_type: Image
+      arg_names:
+        - data
+      user_unique_name: Image
+    id: '339'
+    inputs:
+      data:
+        - outputKey: non_normalized_image
+          operation: Input
+          id: '94'
+    outputs: {}
+  - operation: Visualizer
+    data:
+      type: Visualizer
+      name: bb_car_decoder
+      visualizer_name: bb_car_decoder
+      visualizer_type: ImageWithBBox
+      arg_names:
+        - image
+        - predictions
+      user_unique_name: bb_car_decoder
+    id: '340'
+    inputs:
+      predictions:
+        - outputKey: merged
+          operation: Concatenate
+          name: output
+          id: '1'
+      image:
+        - outputKey: non_normalized_image
+          operation: Input
+          id: '331'
+    outputs: {}
+  - operation: Visualizer
+    data:
+      type: Visualizer
+      name: bb_car_gt_decoder
+      visualizer_name: bb_car_gt_decoder
+      visualizer_type: ImageWithBBox
+      arg_names:
+        - image
+        - bb_gt
+      user_unique_name: bb_car_gt_decoder
+    id: '341'
+    inputs:
+      image:
+        - outputKey: non_normalized_image
+          operation: Input
+          id: '331'
+      bb_gt:
+        - outputKey: bbox
+          operation: GroundTruth
+          id: '332'
+    outputs: {}
+  - operation: Metric
+    data:
+      type: Metric
+      name: iou_class_traffic sign
+      metric_name: iou_class_traffic sign
+      arg_names:
+        - y_true
+        - y_pred
+      user_unique_name: iou_class_traffic sign
+    id: '342'
+    inputs:
+      y_pred:
+        - outputKey: merged
+          operation: Concatenate
+          name: output
+          id: '1'
+      y_true:
+        - outputKey: bbox
+          operation: GroundTruth
+          id: '332'
+    outputs: {}
+  - operation: Metric
+    data:
+      type: Metric
+      name: iou_class_traffic light
+      metric_name: iou_class_traffic light
+      arg_names:
+        - y_true
+        - y_pred
+      user_unique_name: iou_class_traffic light
+    id: '343'
+    inputs:
+      y_pred:
+        - outputKey: merged
+          operation: Concatenate
+          name: output
+          id: '1'
+      y_true:
+        - outputKey: bbox
+          operation: GroundTruth
+          id: '332'
+    outputs: {}
+  - operation: Metric
+    data:
+      type: Metric
+      name: iou_class_wall
+      metric_name: iou_class_wall
+      arg_names:
+        - y_true
+        - y_pred
+      user_unique_name: iou_class_wall
+    id: '344'
+    inputs:
+      y_pred:
+        - outputKey: merged
+          operation: Concatenate
+          name: output
+          id: '1'
+      y_true:
+        - outputKey: bbox
+          operation: GroundTruth
+          id: '332'
+    outputs: {}
+  - operation: Metric
+    data:
+      type: Metric
+      name: iou_class_road
+      metric_name: iou_class_road
+      arg_names:
+        - y_true
+        - y_pred
+      user_unique_name: iou_class_road
+    id: '345'
+    inputs:
+      y_pred:
+        - outputKey: merged
+          operation: Concatenate
+          name: output
+          id: '1'
+      y_true:
+        - outputKey: bbox
+          operation: GroundTruth
+          id: '332'
+    outputs: {}
+  - operation: Metric
+    data:
+      type: Metric
+      name: iou_class_vegetation
+      metric_name: iou_class_vegetation
+      arg_names:
+        - y_true
+        - y_pred
+      user_unique_name: iou_class_vegetation
+    id: '346'
+    inputs:
+      y_pred:
+        - outputKey: merged
+          operation: Concatenate
+          name: output
+          id: '1'
+      y_true:
+        - outputKey: bbox
+          operation: GroundTruth
+          id: '332'
+    outputs: {}
+  - operation: Metric
+    data:
+      type: Metric
+      name: iou_class_terrain
+      metric_name: iou_class_terrain
+      arg_names:
+        - y_true
+        - y_pred
+      user_unique_name: iou_class_terrain
+    id: '347'
+    inputs:
+      y_pred:
+        - outputKey: merged
+          operation: Concatenate
+          name: output
+          id: '1'
+      y_true:
+        - outputKey: bbox
+          operation: GroundTruth
+          id: '332'
+    outputs: {}
+  - operation: Metric
+    data:
+      type: Metric
+      name: iou_class_fence
+      metric_name: iou_class_fence
+      arg_names:
+        - y_true
+        - y_pred
+      user_unique_name: iou_class_fence
+    id: '348'
+    inputs:
+      y_pred:
+        - outputKey: merged
+          operation: Concatenate
+          name: output
+          id: '1'
+      y_true:
+        - outputKey: bbox
+          operation: GroundTruth
+          id: '332'
+    outputs: {}
+  - operation: Metric
+    data:
+      type: Metric
+      name: iou_class_building
+      metric_name: iou_class_building
+      arg_names:
+        - y_true
+        - y_pred
+      user_unique_name: iou_class_building
+    id: '349'
+    inputs:
+      y_pred:
+        - outputKey: merged
+          operation: Concatenate
+          name: output
+          id: '1'
+      y_true:
+        - outputKey: bbox
+          operation: GroundTruth
+          id: '332'
+    outputs: {}
+  - operation: Metric
+    data:
+      type: Metric
+      name: iou_class_sidewalk
+      metric_name: iou_class_sidewalk
+      arg_names:
+        - y_true
+        - y_pred
+      user_unique_name: iou_class_sidewalk
+    id: '350'
+    inputs:
+      y_pred:
+        - outputKey: merged
+          operation: Concatenate
+          name: output
+          id: '1'
+      y_true:
+        - outputKey: bbox
+          operation: GroundTruth
+          id: '332'
+    outputs: {}
+  - operation: Metric
+    data:
+      type: Metric
+      name: iou_class_pole
+      metric_name: iou_class_pole
+      arg_names:
+        - y_true
+        - y_pred
+      user_unique_name: iou_class_pole
+    id: '351'
+    inputs:
+      y_pred:
+        - outputKey: merged
+          operation: Concatenate
+          name: output
+          id: '1'
+      y_true:
+        - outputKey: bbox
+          operation: GroundTruth
+          id: '332'
+    outputs: {}
+  - operation: Metric
+    data:
+      type: Metric
+      name: iou_class_sky
+      metric_name: iou_class_sky
+      arg_names:
+        - y_true
+        - y_pred
+      user_unique_name: iou_class_sky
+    id: '352'
+    inputs:
+      y_pred:
+        - outputKey: merged
+          operation: Concatenate
+          name: output
+          id: '1'
+      y_true:
+        - outputKey: bbox
+          operation: GroundTruth
+          id: '332'
+    outputs: {}
+  - operation: Metric
+    data:
+      type: Metric
+      name: iou_class_person
+      metric_name: iou_class_person
+      arg_names:
+        - y_true
+        - y_pred
+      user_unique_name: iou_class_person
+    id: '353'
+    inputs:
+      y_pred:
+        - outputKey: merged
+          operation: Concatenate
+          name: output
+          id: '1'
+      y_true:
+        - outputKey: bbox
+          operation: GroundTruth
+          id: '332'
+    outputs: {}
+  - operation: Metric
+    data:
+      type: Metric
+      name: iou_class_rider
+      metric_name: iou_class_rider
+      arg_names:
+        - y_true
+        - y_pred
+      user_unique_name: iou_class_rider
+    id: '354'
+    inputs:
+      y_pred:
+        - outputKey: merged
+          operation: Concatenate
+          name: output
+          id: '1'
+      y_true:
+        - outputKey: bbox
+          operation: GroundTruth
+          id: '332'
+    outputs: {}
+  - operation: Metric
+    data:
+      type: Metric
+      name: iou_class_car
+      metric_name: iou_class_car
+      arg_names:
+        - y_true
+        - y_pred
+      user_unique_name: iou_class_car
+    id: '355'
+    inputs:
+      y_pred:
+        - outputKey: merged
+          operation: Concatenate
+          name: output
+          id: '1'
+      y_true:
+        - outputKey: bbox
+          operation: GroundTruth
+          id: '332'
+    outputs: {}
+  - operation: Metric
+    data:
+      type: Metric
+      name: iou_class_truck
+      metric_name: iou_class_truck
+      arg_names:
+        - y_true
+        - y_pred
+      user_unique_name: iou_class_truck
+    id: '356'
+    inputs:
+      y_pred:
+        - outputKey: merged
+          operation: Concatenate
+          name: output
+          id: '1'
+      y_true:
+        - outputKey: bbox
+          operation: GroundTruth
+          id: '332'
+    outputs: {}
+  - operation: Metric
+    data:
+      type: Metric
+      name: iou_class_train
+      metric_name: iou_class_train
+      arg_names:
+        - y_true
+        - y_pred
+      user_unique_name: iou_class_train
+    id: '357'
+    inputs:
+      y_pred:
+        - outputKey: merged
+          operation: Concatenate
+          name: output
+          id: '1'
+      y_true:
+        - outputKey: bbox
+          operation: GroundTruth
+          id: '332'
+    outputs: {}
+  - operation: Metric
+    data:
+      type: Metric
+      name: iou_class_train
+      metric_name: iou_class_train
+      arg_names:
+        - y_true
+        - y_pred
+      user_unique_name: iou_class_train
+    id: '358'
+    inputs:
+      y_pred:
+        - outputKey: merged
+          operation: Concatenate
+          name: output
+          id: '1'
+      y_true:
+        - outputKey: bbox
+          operation: GroundTruth
+          id: '332'
+    outputs: {}
+  - operation: Metric
+    data:
+      type: Metric
+      name: iou_class_motorcycle
+      metric_name: iou_class_motorcycle
+      arg_names:
+        - y_true
+        - y_pred
+      user_unique_name: iou_class_motorcycle
+    id: '359'
+    inputs:
+      y_pred:
+        - outputKey: merged
+          operation: Concatenate
+          name: output
+          id: '1'
+      y_true:
+        - outputKey: bbox
+          operation: GroundTruth
+          id: '332'
+    outputs: {}
+  - operation: Metric
+    data:
+      type: Metric
+      name: iou_class_bicycle
+      metric_name: iou_class_bicycle
+      arg_names:
+        - y_true
+        - y_pred
+      user_unique_name: iou_class_bicycle
+    id: '360'
+    inputs:
+      y_pred:
+        - outputKey: merged
+          operation: Concatenate
+          name: output
+          id: '1'
+      y_true:
+        - outputKey: bbox
+          operation: GroundTruth
+          id: '332'
+    outputs: {}
+layers:
+  - operation: Concatenate
+    data:
+      prediction_type: object detection
+    name: output
+    id: '1'
