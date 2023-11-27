@@ -1,9 +1,11 @@
-codeIntegrationId: 64b50d2d8ff20b00199385c5
-projectId: ""
-secretManagerId: ""
+codeIntegrationId: 65648a203921f600127235c1
+projectId: 65648a133921f600127235bd
+secretId: ""
 entryFile: leap_binder.py
 include:
     - leap_binder.py
+    - leap_custom_test.py
+    - leap_mapping.yaml
     - cityscapes_od/data/preprocess.py
     - cityscapes_od/utils/gcs_utils.py
     - cityscapes_od/utils/general_utils.py
@@ -12,4 +14,3 @@ include:
     - cityscapes_od/metrics.py
     - cityscapes_od/od_config.yaml
     - cityscapes_od/plots.py
-

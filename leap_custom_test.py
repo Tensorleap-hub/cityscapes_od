@@ -12,6 +12,7 @@ from leap_binder import load_cityscapes_data_leap, ground_truth_bbox, non_normal
     is_class_exist_gen, is_class_exist_veg_and_building, get_class_mean_iou
 from os import environ
 
+
 def check_custom_integration():
     if environ.get('AUTH_SECRET') is None:
         print("The AUTH_SECRET system variable must be initialized with the relevant secret to run this test")
@@ -71,7 +72,6 @@ def check_custom_integration():
         class_exist_veg_func = is_class_exist_veg_and_building(21, 11)
         class_exist_veg = class_exist_veg_func(idx, responses_set)
 
-
         # get loss and custom metrics
         ls = od_loss(y_true, y_pred)
         metrices_all = od_metrics_dict(y_true, y_pred)
@@ -81,8 +81,6 @@ def check_custom_integration():
 
     print("Custom tests finished successfully")
 
+
 if __name__ == '__main__':
     check_custom_integration()
-
-
-

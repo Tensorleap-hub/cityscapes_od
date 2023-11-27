@@ -1,0 +1,249 @@
+decorators:
+  - operation: Input
+    data:
+      type: Input
+      output_name: non_normalized_image
+    id: '94'
+    inputs: {}
+    outputs:
+      non_normalized_image:
+        - inputKey: input
+          operation: Permute
+          name: permute_133
+          id: '93'
+        - inputKey: data
+          operation: Visualizer
+          id: '339'
+  - operation: CustomLoss
+    data:
+      arg_names:
+        - bb_gt
+        - y_pred
+      name: od_loss
+      selected: od_loss
+      type: CustomLoss
+    id: '330'
+    inputs:
+      y_pred:
+        - outputKey: merged
+          operation: Concatenate
+          name: output
+          id: '1'
+      bb_gt:
+        - outputKey: bbox
+          operation: GroundTruth
+          id: '332'
+    outputs:
+      loss:
+        - inputKey: '0'
+          operation: Adam
+          id: '333'
+  - operation: Input
+    data:
+      type: Input
+      output_name: non_normalized_image
+      selected: non_normalized_image
+    id: '331'
+    inputs: {}
+    outputs:
+      non_normalized_image:
+        - inputKey: image
+          operation: Visualizer
+          id: '334'
+        - inputKey: image
+          operation: Visualizer
+          id: '335'
+        - inputKey: image
+          operation: Visualizer
+          id: '340'
+        - inputKey: image
+          operation: Visualizer
+          id: '341'
+  - operation: GroundTruth
+    data:
+      type: GroundTruth
+      output_name: bbox
+      selected: bbox
+    id: '332'
+    inputs: {}
+    outputs:
+      bbox:
+        - inputKey: bb_gt
+          operation: Visualizer
+          id: '334'
+        - inputKey: bb_gt
+          operation: Visualizer
+          id: '341'
+        - inputKey: y_true
+          operation: Metric
+          id: '357'
+        - inputKey: bb_gt
+          operation: Metric
+          id: '338'
+        - inputKey: bb_gt
+          operation: CustomLoss
+          id: '330'
+  - operation: Adam
+    data:
+      type: Optimizer
+      custom_input_keys:
+        - 333-0
+      arg_names:
+        - '0'
+    id: '333'
+    inputs:
+      '0':
+        - outputKey: loss
+          operation: CustomLoss
+          id: '330'
+    outputs: {}
+  - operation: Visualizer
+    data:
+      type: Visualizer
+      name: bb_gt_decoder
+      visualizer_name: bb_gt_decoder
+      visualizer_type: ImageWithBBox
+      arg_names:
+        - image
+        - bb_gt
+      user_unique_name: bb_gt_decoder
+    id: '334'
+    inputs:
+      image:
+        - outputKey: non_normalized_image
+          operation: Input
+          id: '331'
+      bb_gt:
+        - outputKey: bbox
+          operation: GroundTruth
+          id: '332'
+    outputs: {}
+  - operation: Visualizer
+    data:
+      type: Visualizer
+      name: bb_decoder
+      visualizer_name: bb_decoder
+      visualizer_type: ImageWithBBox
+      arg_names:
+        - image
+        - predictions
+      user_unique_name: bb_decoder
+    id: '335'
+    inputs:
+      predictions:
+        - outputKey: merged
+          operation: Concatenate
+          name: output
+          id: '1'
+      image:
+        - outputKey: non_normalized_image
+          operation: Input
+          id: '331'
+    outputs: {}
+  - operation: Metric
+    data:
+      type: Metric
+      name: od_metrics
+      metric_name: od_metrics
+      arg_names:
+        - bb_gt
+        - detection_pred
+      user_unique_name: od_metrics
+    id: '338'
+    inputs:
+      detection_pred:
+        - outputKey: merged
+          operation: Concatenate
+          name: output
+          id: '1'
+      bb_gt:
+        - outputKey: bbox
+          operation: GroundTruth
+          id: '332'
+    outputs: {}
+  - operation: Visualizer
+    data:
+      type: Visualizer
+      name: Image
+      visualizer_name: Image
+      visualizer_type: Image
+      arg_names:
+        - data
+      user_unique_name: Image
+    id: '339'
+    inputs:
+      data:
+        - outputKey: non_normalized_image
+          operation: Input
+          id: '94'
+    outputs: {}
+  - operation: Visualizer
+    data:
+      type: Visualizer
+      name: bb_car_decoder
+      visualizer_name: bb_car_decoder
+      visualizer_type: ImageWithBBox
+      arg_names:
+        - image
+        - predictions
+      user_unique_name: bb_car_decoder
+    id: '340'
+    inputs:
+      predictions:
+        - outputKey: merged
+          operation: Concatenate
+          name: output
+          id: '1'
+      image:
+        - outputKey: non_normalized_image
+          operation: Input
+          id: '331'
+    outputs: {}
+  - operation: Visualizer
+    data:
+      type: Visualizer
+      name: bb_car_gt_decoder
+      visualizer_name: bb_car_gt_decoder
+      visualizer_type: ImageWithBBox
+      arg_names:
+        - image
+        - bb_gt
+      user_unique_name: bb_car_gt_decoder
+    id: '341'
+    inputs:
+      image:
+        - outputKey: non_normalized_image
+          operation: Input
+          id: '331'
+      bb_gt:
+        - outputKey: bbox
+          operation: GroundTruth
+          id: '332'
+    outputs: {}
+  - operation: Metric
+    data:
+      type: Metric
+      name: class_iou
+      metric_name: class_iou
+      arg_names:
+        - y_true
+        - y_pred
+      user_unique_name: class_iou
+    id: '357'
+    inputs:
+      y_pred:
+        - outputKey: merged
+          operation: Concatenate
+          name: output
+          id: '1'
+      y_true:
+        - outputKey: bbox
+          operation: GroundTruth
+          id: '332'
+    outputs: {}
+layers:
+  - operation: Concatenate
+    data:
+      prediction_type: object detection
+    name: output
+    id: '1'

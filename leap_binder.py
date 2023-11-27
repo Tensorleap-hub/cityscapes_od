@@ -10,7 +10,7 @@ import tensorflow as tf
 from cityscapes_od.config import CONFIG
 from cityscapes_od.data.preprocess import load_cityscapes_data, CATEGORIES, CATEGORIES_no_background, \
     CATEGORIES_id_no_background, Cityscapes
-from cityscapes_od.metrics import calculate_iou, od_loss, metric
+from cityscapes_od.metrics import calculate_iou, od_loss, metric, classes_dict_iou
 from cityscapes_od.utils.gcs_utils import _download
 from cityscapes_od.utils.general_utils import extract_bounding_boxes_from_instance_segmentation_polygons, \
     bb_array_to_object, get_predict_bbox_list, instances_num, avg_bb_aspect_ratio, avg_bb_area_metadata, \
@@ -24,18 +24,19 @@ from code_loader.contract.enums import (
     LeapDataType
 )
 
+
 # ----------------------------------------------------data processing--------------------------------------------------
 def load_cityscapes_data_leap() -> List[PreprocessResponse]:
     all_images, all_gt_images, all_gt_labels, all_gt_labels_for_bbx, all_file_names, all_metadata, all_cities =\
         load_cityscapes_data()
 
-    # train_len = len(all_images[0])
-    # val_len = len(all_images[1])
-    # test_len = len(all_images[2])
+    train_len = len(all_images[0])
+    val_len = len(all_images[1])
+    test_len = len(all_images[2])
 
-    train_len = 700
-    val_len = 100
-    test_len = 200
+    # train_len = 700
+    # val_len = 100
+    # test_len = 200
 
     lengths = [train_len, val_len, test_len]
     responses = [
@@ -177,12 +178,14 @@ def is_class_exist_veg_and_building(class_id_veg: int, class_id_building: int) -
 
 # ---------------------------------------------------------metrics------------------------------------------------------
 
+
 def get_class_mean_iou(class_id: int) -> Callable[[Tensor, Tensor], Tensor]:
     def class_mean_iou(y_true: tf.Tensor, y_pred: tf.Tensor) -> tf.Tensor:
         iou = calculate_iou(y_true, y_pred, class_id)
         return tf.convert_to_tensor(np.array([iou]), dtype=tf.float32)
 
     return class_mean_iou
+
 
 def od_metrics_dict(bb_gt: tf.Tensor, detection_pred: tf.Tensor) -> Dict[str, tf.Tensor]:
     losses = metric(bb_gt, detection_pred)
@@ -192,6 +195,7 @@ def od_metrics_dict(bb_gt: tf.Tensor, detection_pred: tf.Tensor) -> Dict[str, tf
         "Objectness_metric": losses[2],
     }
     return metric_functions
+
 
 def gt_bb_decoder(image: np.ndarray, bb_gt: tf.Tensor) -> LeapImageWithBBox:
     """
@@ -273,9 +277,6 @@ leap_binder.set_visualizer(bb_car_decoder, 'bb_car_decoder', LeapDataType.ImageW
 
 # set custom metrics
 leap_binder.add_custom_metric(od_metrics_dict, 'od_metrics')
-for id in CATEGORIES_id_no_background:
-    class_name = Cityscapes.get_class_name(id)
-    leap_binder.add_custom_metric(get_class_mean_iou(id), f"iou_class_{class_name}")
-
+leap_binder.add_custom_metric(classes_dict_iou, 'class_iou')
 
 

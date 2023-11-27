@@ -1,12 +1,14 @@
-from typing import Tuple, List, Any
+from typing import Tuple, List, Any, Dict
 import tensorflow as tf
-
+from tensorflow import Tensor
+import numpy as np
 from cityscapes_od.config import CONFIG
-from cityscapes_od.data.preprocess import Cityscapes, CATEGORIES_no_background
+from cityscapes_od.data.preprocess import Cityscapes, CATEGORIES_id_no_background
 from cityscapes_od.utils.general_utils import bb_array_to_object, get_predict_bbox_list
 from cityscapes_od.utils.yolo_utils import LOSS_FN
 
 from code_loader.helpers.detection.yolo.utils import reshape_output_list
+from cityscapes_od.data.preprocess import CATEGORIES_no_background
 
 def compute_losses(obj_true: tf.Tensor, od_pred: tf.Tensor) -> Tuple[tf.Tensor, tf.Tensor, tf.Tensor]:
     """
@@ -91,6 +93,7 @@ def union_area(true_box: List[float], pred_box: List[float]) -> float:
     return true_area + pred_area - intersection_area(true_box, pred_box)
 
 
+
 def calculate_iou(y_true: tf.Tensor, y_pred: tf.Tensor, class_id: int) -> float:
     """Calculates the intersection over union (IoU) between a list of true bounding boxes and a list of predicted bounding boxes.
       Args:
@@ -122,3 +125,12 @@ def calculate_iou(y_true: tf.Tensor, y_pred: tf.Tensor, class_id: int) -> float:
     if not iou_scores:
         return 0
     return sum(iou_scores) / len(iou_scores)
+
+
+def classes_dict_iou(y_true: tf.Tensor, y_pred: tf.Tensor) -> Dict[str, Tensor]:
+    res_dic = dict()
+    for i, class_id in enumerate(CATEGORIES_id_no_background):
+        class_name = Cityscapes.get_class_name(class_id)
+        iou = calculate_iou(y_true, y_pred, class_id)
+        res_dic[f'{class_name}'] = tf.convert_to_tensor(np.array([iou]), dtype=tf.float32)
+    return res_dic
