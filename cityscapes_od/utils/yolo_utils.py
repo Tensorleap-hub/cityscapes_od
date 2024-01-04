@@ -20,9 +20,9 @@ LOSS_FN = YoloLoss(num_classes=CONFIG['CLASSES'], overlap_thresh=CONFIG['OVERLAP
 
 DECODER = Decoder(CONFIG['CLASSES'],
                   background_label=CONFIG['BACKGROUND_LABEL'],
-                  top_k=50,
+                  top_k=CONFIG['MAX_BB_PER_IMAGE'],
                   conf_thresh=CONFIG['CONF_THRESH'],
                   nms_thresh=CONFIG['NMS_THRESH'],
                   semantic_instance=False,
-                  max_bb=50,
-                  max_bb_per_layer=50)
+                  max_bb=CONFIG['MAX_BB_PER_IMAGE'],
+                  max_bb_per_layer=CONFIG['MAX_BB_PER_IMAGE'])
