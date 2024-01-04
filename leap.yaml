@@ -1,6 +1,6 @@
 codeIntegrationId: 64b50d2d8ff20b00199385c5
-projectId: ""
-secretManagerId: ""
+projectId: 6596730a02eccd271a02d96e
+secretId: 655f5a9dd179f900194ca380
 entryFile: leap_binder.py
 include:
     - leap_binder.py
@@ -12,4 +12,3 @@ include:
     - cityscapes_od/metrics.py
     - cityscapes_od/od_config.yaml
     - cityscapes_od/plots.py
-
