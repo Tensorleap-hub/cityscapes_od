@@ -1,7 +1,7 @@
 BUCKET_NAME: tl-private-datasets
 PROJECT_ID: tl-private-dev-project
 MODEL_FORMAT: inference
-MAX_BB_PER_IMAGE: 20
+MAX_BB_PER_IMAGE: 50
 
 BACKGROUND_LABEL: 36
 CLASSES: 35
