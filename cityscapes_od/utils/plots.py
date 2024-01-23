@@ -6,7 +6,7 @@ import matplotlib.patches as patches
 from code_loader.contract.responsedataclasses import BoundingBox
 
 from cityscapes_od.data.preprocess import Cityscapes
-from cityscapes_od.utils.general_utils import normelized_polygon
+from cityscapes_od.utils.general_utils import normalized_polygon
 
 
 def rgb_to_color_name(rgb_value: Tuple[int]) ->str:
@@ -82,7 +82,7 @@ def plot_image_with_polygons(image_height: int, image_width: int, polygons, imag
 
     # Add polygons to the plot
     for polygon in polygons:
-        polygon = normelized_polygon(image_height, image_width, polygon)
+        polygon = normalized_polygon(image_height, image_width, polygon)
         label = polygon['label']
         color = Cityscapes.get_class_color(label)
         color_name = rgb_to_color_name(color)
