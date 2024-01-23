@@ -10,11 +10,11 @@ import tensorflow as tf
 from cityscapes_od.config import CONFIG
 from cityscapes_od.data.preprocess import load_cityscapes_data, CATEGORIES, CATEGORIES_no_background, \
     CATEGORIES_id_no_background, Cityscapes
-from cityscapes_od.metrics import calculate_iou, od_loss, metric
+from cityscapes_od.metrics import calculate_iou, od_loss, calc_od_losses, confusion_matrix_metric
 from cityscapes_od.utils.gcs_utils import _download
 from cityscapes_od.utils.general_utils import extract_bounding_boxes_from_instance_segmentation_polygons, \
     bb_array_to_object, get_predict_bbox_list, instances_num, avg_bb_aspect_ratio, avg_bb_area_metadata, \
-    count_small_bbs, number_of_bb
+    count_small_bbs, number_of_bb, filter_out_unknown_classes_id
 
 from code_loader.contract.responsedataclasses import BoundingBox
 from code_loader.contract.visualizer_classes import LeapImageWithBBox
@@ -29,13 +29,13 @@ def load_cityscapes_data_leap() -> List[PreprocessResponse]:
     all_images, all_gt_images, all_gt_labels, all_gt_labels_for_bbx, all_file_names, all_metadata, all_cities =\
         load_cityscapes_data()
 
-    # train_len = len(all_images[0])
-    # val_len = len(all_images[1])
-    # test_len = len(all_images[2])
+    train_len = len(all_images[0])
+    val_len = len(all_images[1])
+    test_len = len(all_images[2])
 
-    train_len = 700
-    val_len = 100
-    test_len = 200
+    # train_len = 700
+    # val_len = 100
+    # test_len = 200
 
     lengths = [train_len, val_len, test_len]
     responses = [
@@ -114,6 +114,16 @@ def metadata_json(idx: int, data: PreprocessResponse):
     }
     return res
 #
+
+def gt_all_bbox_count(idx: int, data: PreprocessResponse):
+    data = data.data
+    cloud_path = data['gt_bbx_path'][idx]
+    fpath = _download(cloud_path)
+    with open(fpath, 'r') as file:
+        json_data = json.load(file)
+    objects = filter_out_unknown_classes_id(json_data['objects'])
+    return len(objects)
+
 def category_percent(idx: int, data: PreprocessResponse, class_id:int) -> float:
     bbs = np.array(ground_truth_bbox(idx, data))
     valid_bbs = bbs[bbs[..., -1] != CONFIG['BACKGROUND_LABEL']]
@@ -184,8 +194,28 @@ def get_class_mean_iou(class_id: int) -> Callable[[Tensor, Tensor], Tensor]:
 
     return class_mean_iou
 
+
+def class_mean_iou(y_true: tf.Tensor, y_pred: tf.Tensor, class_id: str) -> tf.Tensor:
+    iou = calculate_iou(y_true, y_pred, class_id)
+    return tf.convert_to_tensor(np.array([iou]), dtype=tf.float32)
+
+
+def iou_dic(y_true: tf.Tensor, y_pred: tf.Tensor) -> dict:
+    res_dic = dict()
+    mean_iou = list()
+    for c_id in CATEGORIES_id_no_background:
+        class_name = Cityscapes.get_class_name(c_id)
+        res = class_mean_iou(y_true, y_pred, c_id)
+        res_dic[f"{class_name}"] = res
+        if tf.reduce_sum(res) > 0:
+            mean_iou += [res]   # todo multiply by pixels
+    res_dic["meanIOU"] = tf.reduce_mean(mean_iou)
+    return res_dic
+
+
+
 def od_metrics_dict(bb_gt: tf.Tensor, detection_pred: tf.Tensor) -> Dict[str, tf.Tensor]:
-    losses = metric(bb_gt, detection_pred)
+    losses = calc_od_losses(bb_gt, detection_pred)
     metric_functions = {
         "Regression_metric": losses[0],
         "Classification_metric": losses[1],
@@ -234,6 +264,12 @@ def bb_car_decoder(image: np.ndarray, predictions: tf.Tensor) -> LeapImageWithBB
     bb_object = [bbox for bbox in bb_object if bbox.label == 'car']
     return LeapImageWithBBox(data=(image * 255).astype(np.float32), bounding_boxes=bb_object)
 
+
+def bus_bbox_pred(predictions: tf.Tensor) -> int:
+    bb_object = get_predict_bbox_list(predictions[0, ...])
+    bb_object = [bbox for bbox in bb_object if bbox.label == 'bus']
+    return len(bb_object)
+
 # ---------------------------------------------------------binding------------------------------------------------------
 
 #preprocess function
@@ -263,6 +299,7 @@ for id in CATEGORIES_id_no_background:
     class_name = Cityscapes.get_class_name(id)
     leap_binder.set_metadata(is_class_exist_gen(id), f'does_class_number_{id}_exist')
 leap_binder.set_metadata(is_class_exist_veg_and_building(21, 11), "does_veg_and_buildeng_class_exist")
+leap_binder.set_metadata(gt_all_bbox_count, "gt_all_bboxes_counts")
 
 
 #set visualizer
@@ -273,9 +310,10 @@ leap_binder.set_visualizer(bb_car_decoder, 'bb_car_decoder', LeapDataType.ImageW
 
 # set custom metrics
 leap_binder.add_custom_metric(od_metrics_dict, 'od_metrics')
-for id in CATEGORIES_id_no_background:
-    class_name = Cityscapes.get_class_name(id)
-    leap_binder.add_custom_metric(get_class_mean_iou(id), f"iou_class_{class_name}")
+leap_binder.add_custom_metric(bus_bbox_pred, 'bus_bbox_pred')
+leap_binder.add_custom_metric(confusion_matrix_metric, "confusion_matrix")
+leap_binder.add_custom_metric(iou_dic, "ious")
+
 
 if __name__ == '__main__':
     leap_binder.check()
