@@ -10,7 +10,7 @@ import tensorflow as tf
 from cityscapes_od.config import CONFIG
 from cityscapes_od.data.preprocess import load_cityscapes_data, CATEGORIES, CATEGORIES_no_background, \
     CATEGORIES_id_no_background, Cityscapes
-from cityscapes_od.metrics import calculate_iou, od_loss, calc_od_losses, confusion_matrix_metric
+from cityscapes_od.metrics import calculate_iou, od_loss, calc_od_losses
 from cityscapes_od.utils.gcs_utils import _download
 from cityscapes_od.utils.general_utils import extract_bounding_boxes_from_instance_segmentation_polygons, \
     bb_array_to_object, get_predict_bbox_list, instances_num, avg_bb_aspect_ratio, avg_bb_area_metadata, \
@@ -56,7 +56,7 @@ def load_cityscapes_data_leap() -> List[PreprocessResponse]:
 
 #------------------------------------------input and gt------------------------------------------
 
-def non_normalized_image(idx: int, data: PreprocessResponse) -> np.ndarray:
+def encode_image(idx: int, data: PreprocessResponse) -> np.ndarray:
     data = data.data
     cloud_path = data['image_path'][idx]
     fpath = _download(str(cloud_path))
@@ -92,7 +92,7 @@ def metadata_idx(idx: int, data: PreprocessResponse) -> int:
     return idx
 
 def metadata_brightness(idx: int, data: PreprocessResponse) -> float:
-    img = non_normalized_image(idx, data)
+    img = encode_image(idx, data)
     return np.mean(img)
 
 def get_metadata_json(idx: int, data: PreprocessResponse) -> Dict[str,str]:
@@ -201,6 +201,10 @@ def class_mean_iou(y_true: tf.Tensor, y_pred: tf.Tensor, class_id: str) -> tf.Te
 
 
 def iou_dic(y_true: tf.Tensor, y_pred: tf.Tensor) -> dict:
+    if len(y_true.shape) == 2:
+        y_true = tf.expand_dims(y_true, 0)
+    if len(y_pred.shape) == 2:
+        y_pred = tf.expand_dims(y_pred, 0)
     res_dic = dict()
     mean_iou = list()
     for c_id in CATEGORIES_id_no_background:
@@ -209,7 +213,7 @@ def iou_dic(y_true: tf.Tensor, y_pred: tf.Tensor) -> dict:
         res_dic[f"{class_name}"] = res
         if tf.reduce_sum(res) > 0:
             mean_iou += [res]   # todo multiply by pixels
-    res_dic["meanIOU"] = tf.reduce_mean(mean_iou)
+    res_dic["meanIOU"] = tf.reduce_mean(mean_iou, 0) if len(mean_iou) > 0 else tf.zeros(shape=(1))
     return res_dic
 
 
@@ -265,10 +269,12 @@ def bb_car_decoder(image: np.ndarray, predictions: tf.Tensor) -> LeapImageWithBB
     return LeapImageWithBBox(data=(image * 255).astype(np.float32), bounding_boxes=bb_object)
 
 
-def bus_bbox_pred(predictions: tf.Tensor) -> int:
+def bus_bbox_cnt_pred(predictions: tf.Tensor) -> float:
+    if len(predictions.shape) == 2:
+        predictions = tf.expand_dims(predictions, 0)
     bb_object = get_predict_bbox_list(predictions[0, ...])
     bb_object = [bbox for bbox in bb_object if bbox.label == 'bus']
-    return len(bb_object)
+    return float(len(bb_object))
 
 # ---------------------------------------------------------binding------------------------------------------------------
 
@@ -276,7 +282,7 @@ def bus_bbox_pred(predictions: tf.Tensor) -> int:
 leap_binder.set_preprocess(load_cityscapes_data_leap)
 
 #set input and gt
-leap_binder.set_input(non_normalized_image, 'non_normalized_image')
+leap_binder.set_input(encode_image, 'image')
 leap_binder.set_ground_truth(ground_truth_bbox, 'bbox')
 
 #set prediction
@@ -310,8 +316,7 @@ leap_binder.set_visualizer(bb_car_decoder, 'bb_car_decoder', LeapDataType.ImageW
 
 # set custom metrics
 leap_binder.add_custom_metric(od_metrics_dict, 'od_metrics')
-leap_binder.add_custom_metric(bus_bbox_pred, 'bus_bbox_pred')
-leap_binder.add_custom_metric(confusion_matrix_metric, "confusion_matrix")
+leap_binder.add_custom_metric(bus_bbox_cnt_pred, 'bus_cnt_bbox_pred')
 leap_binder.add_custom_metric(iou_dic, "ious")
 
 

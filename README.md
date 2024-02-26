@@ -67,6 +67,27 @@ performance in detecting and accurately segmenting the 'road' class is notably s
 
 ![iou_road](images/iou_road.png)
 
+
+# Bus Prediction Issue
+
+We notice the model didn't learn 'bus' class properly. In the dashboard, we plot count of bus instances per image vs the amount of bus instance predictions per image. 
+The model never outputs bus class. Additionally, the "bus" prediction heatmaps do not highlight any relevant pixel areas.
+We fine-tuned the model and see the new model is able to detect the bus objects. 
+We can support it quantitatively from the metrics dashboard and qualitatively from the heatmaps, compared to the original model:
+
+PE: we color based on bus prediction and observe model outputs 0 for all samples:
+![PE_bus_predictions](images/PE_bus_prediction.png)
+
+Figure bus prediction vs bus GT amount: original model vs fine-tuned model:
+![bus_pred](images/plot_bus_predictions.png)
+
+
+"Bus" Prediction Heatmaps: original model vs fine-tuned model:
+![bus_heatmap_1](images/bus_heatmaps_1.png)
+![bus_heatmap_2](images/bus_heatmaps_2.png)
+![bus_heatmap_3](images/bus_heatmaps_3.png)
+
+
 # Getting Started with Tensorleap Project
 
 This quick start guide will walk you through the steps to get started with this example repository project.

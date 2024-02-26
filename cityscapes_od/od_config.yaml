@@ -1,13 +1,14 @@
-BUCKET_NAME: tl-private-datasets
-PROJECT_ID: tl-private-dev-project
+BUCKET_NAME: datasets-reteai #tl-private-datasets
+PROJECT_ID: splendid-flow-231921 #tl-private-dev-project
 MODEL_FORMAT: inference
 MAX_BB_PER_IMAGE: 50
 
 BACKGROUND_LABEL: 36
 CLASSES: 35
 OFFSET: 0
-CONF_THRESH: 0.35
+CONF_THRESH: 0.25
 NMS_THRESH: 0.5
+CM_IOU_THRESH: 0.25
 OVERLAP_THRESH: 0.0625
 SMALL_BBS_TH: 0.0003
 STRIDES:

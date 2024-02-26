@@ -1,12 +1,13 @@
 from typing import Tuple, List, Any
 import tensorflow as tf
 
-from cityscapes_od.config import CONFIG
-from cityscapes_od.data.preprocess import Cityscapes, CATEGORIES_no_background
 from cityscapes_od.utils.general_utils import bb_array_to_object, get_predict_bbox_list
 from cityscapes_od.utils.yolo_utils import LOSS_FN
-
 from code_loader.helpers.detection.yolo.utils import reshape_output_list
+
+from cityscapes_od.data.preprocess import Cityscapes, CATEGORIES_no_background, CATEGORIES_id_no_background
+from cityscapes_od.config import CONFIG
+
 
 def compute_losses(obj_true: tf.Tensor, od_pred: tf.Tensor) -> Tuple[tf.Tensor, tf.Tensor, tf.Tensor]:
     """
@@ -31,7 +32,7 @@ def od_loss(bb_gt: tf.Tensor, y_pred: tf.Tensor) -> tf.Tensor:  # return batch
     return non_nan_loss
 
 
-def metric(bb_gt: tf.Tensor, detection_pred: tf.Tensor) -> Tuple[Any, Any, Any]:  # return batch
+def calc_od_losses(bb_gt: tf.Tensor, detection_pred: tf.Tensor) -> Tuple[Any, Any, Any]:  # return batch
     """
     This function calculates the total regression (localization) loss for each head of the object detection model.
     Parameters:
@@ -42,7 +43,6 @@ def metric(bb_gt: tf.Tensor, detection_pred: tf.Tensor) -> Tuple[Any, Any, Any]:
     """
     loss_l, loss_c, loss_o = compute_losses(bb_gt, detection_pred)
     return tf.reduce_sum(loss_l, axis=0)[:, 0], tf.reduce_sum(loss_c, axis=0)[:, 0], tf.reduce_sum(loss_o, axis=0)[:, 0]   # shape of batch
-
 
 
 def convert_to_xyxy(bounding_boxes: List) -> List[List[int]]:
@@ -102,8 +102,7 @@ def calculate_iou(y_true: tf.Tensor, y_pred: tf.Tensor, class_id: int) -> float:
     y_true = bb_array_to_object(y_true, iscornercoded=False, bg_label=CONFIG['BACKGROUND_LABEL'], is_gt=True)
     y_true = [bbox for bbox in y_true if bbox.label in CATEGORIES_no_background]
     y_true = convert_to_xyxy(y_true)
-
-    y_pred = y_pred[0, ...]
+    y_pred = y_pred[0, ...]     # todo: for now support only one batch!
     y_pred = get_predict_bbox_list(y_pred)
     y_pred = [bbox for bbox in y_pred if bbox.label in CATEGORIES_no_background]
     y_pred = convert_to_xyxy(y_pred)
@@ -122,3 +121,4 @@ def calculate_iou(y_true: tf.Tensor, y_pred: tf.Tensor, class_id: int) -> float:
     if not iou_scores:
         return 0
     return sum(iou_scores) / len(iou_scores)
+
