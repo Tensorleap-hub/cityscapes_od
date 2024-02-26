@@ -34,7 +34,7 @@ def filter_out_unknown_classes_id(objects: List[dict]) -> List[dict]:
             continue
     return new_objects
 
-def normelized_polygon(image_height: int, image_width: int, ann: dict) ->dict:
+def normalized_polygon(image_height: int, image_width: int, ann: dict) ->dict:
     """
     Description: This function normalizes a polygon using the height and width of the original image and a
                  dictionary ann representing an annotation (with 'polygon' key containing a list of (x, y) coordinates).
@@ -54,7 +54,8 @@ def normelized_polygon(image_height: int, image_width: int, ann: dict) ->dict:
     ann['polygon'] = new_coords
     return ann
 
-def extract_bounding_boxes_from_instance_segmentation_polygons(json_data: dict) -> np.ndarray:
+
+def extract_bounding_boxes_from_instance_segmentation_polygons(json_data: dict, max_thresh: bool = True) -> np.ndarray:
     """
     This function extracts bounding boxes from instance segmentation polygons present in the given JSON data.
     :param json_data: (dict) A dictionary containing instance segmentation polygons and image size information.
@@ -62,18 +63,20 @@ def extract_bounding_boxes_from_instance_segmentation_polygons(json_data: dict) 
     """
     objects = json_data['objects']
     objects = filter_out_unknown_classes_id(objects)
-    bounding_boxes = np.zeros([CONFIG['MAX_BB_PER_IMAGE'], 5])
-    max_anns = min(CONFIG['MAX_BB_PER_IMAGE'], len(objects))
+    max_anns = min(CONFIG['MAX_BB_PER_IMAGE'], len(objects)) if max_thresh else len(objects)
+    bounding_boxes = np.zeros([max_anns, 5])
     original_image_size = (json_data['imgHeight'], json_data['imgWidth'])
     for i in range(max_anns):
         ann = objects[i]
-        ann = normelized_polygon(original_image_size[0], original_image_size[1], ann)
+        ann = normalized_polygon(original_image_size[0], original_image_size[1], ann)
         bbox = polygon_to_bbox(ann['polygon'])
         bbox /= np.array((CONFIG['IMAGE_SIZE'][0], CONFIG['IMAGE_SIZE'][1], CONFIG['IMAGE_SIZE'][0], CONFIG['IMAGE_SIZE'][1]))
         bounding_boxes[i, :4] = bbox
         bounding_boxes[i, 4] = ann['label']
     bounding_boxes[max_anns:, 4] = CONFIG['BACKGROUND_LABEL']
     return bounding_boxes
+
+
 
 def polygon_to_bbox(polygon: List[List]) ->List[float]:
     """
@@ -125,6 +128,7 @@ def bb_array_to_object(bb_array: Union[NDArray[float], tf.Tensor], iscornercoded
 
             bb_list.append(curr_bb)
     return bb_list
+
 
 def get_predict_bbox_list(data: tf.Tensor) ->List[BoundingBox]:
     """
