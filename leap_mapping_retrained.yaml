@@ -79,11 +79,11 @@ decorators:
           operation: Metric
           id: '363'
         - inputKey: bb_gt
-          operation: CustomLoss
-          id: '330'
-        - inputKey: bb_gt
           operation: Visualizer
           id: '365'
+        - inputKey: bb_gt
+          operation: CustomLoss
+          id: '330'
   - operation: Adam
     data:
       type: Optimizer

@@ -144,7 +144,7 @@ def load_cityscapes_data() -> Tuple[List[List[str]], List[List[str]], List[List[
             all_gt_labels[i] += gt_labels
             all_gt_labels_for_bbx[i] += gt_labels_for_bbx
             all_file_names[i] += file_names
-            all_metadata += metadata_json
+            all_metadata[i] += metadata_json
             all_cities[i] += [folder_name]*len(images)
 
     return all_images, all_gt_images, all_gt_labels, all_gt_labels_for_bbx, all_file_names, all_metadata, all_cities
