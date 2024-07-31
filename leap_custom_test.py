@@ -4,13 +4,14 @@ import tensorflow as tf
 
 from cityscapes_od.data.preprocess import CATEGORIES_no_background, CATEGORIES_id_no_background, Cityscapes
 from cityscapes_od.metrics import od_loss
-from cityscapes_od.plots import plot_image_with_polygons, plot_image_with_bboxes
+from cityscapes_od.utils.plots import plot_image_with_polygons, plot_image_with_bboxes
 from cityscapes_od.utils.general_utils import get_json, get_polygon
-from leap_binder import load_cityscapes_data_leap, ground_truth_bbox, non_normalized_image, \
+from leap_binder import load_cityscapes_data_leap, ground_truth_bbox, \
     od_metrics_dict, gt_bb_decoder, bb_decoder, bb_car_decoder, bb_car_gt_decoder, metadata_filename, metadata_city, \
     metadata_idx, metadata_brightness, metadata_json, metadata_category_avg_size, metadata_bbs, label_instances_num, \
-    is_class_exist_gen, is_class_exist_veg_and_building, get_class_mean_iou
+    is_class_exist_gen, is_class_exist_veg_and_building, encode_image, iou_dic, bus_bbox_cnt_pred
 from os import environ
+
 
 def check_custom_integration():
     if environ.get('AUTH_SECRET') is None:
@@ -26,17 +27,17 @@ def check_custom_integration():
     for idx in range(20):
         # model
         dir_path = os.path.dirname(os.path.abspath(__file__))
-        model_path = ('model/yolov7.h5')
+        model_path = ('model/CSYolov7.h5')
         yolo = tf.keras.models.load_model(os.path.join(dir_path, model_path))
 
         # get input and gt
-        image = non_normalized_image(idx, responses_set)
+        image = encode_image(idx, responses_set)
         bounding_boxes_gt = ground_truth_bbox(idx, responses_set)
 
         json_data = get_json(idx, responses_set)
         image_height, image_width = json_data['imgHeight'], json_data['imgWidth']
         polygons = get_polygon(json_data)
-        plot_image_with_polygons(image_height, image_width, polygons, image)
+        # plot_image_with_polygons(image_height, image_width, polygons, image)
 
         concat = np.expand_dims(image, axis=0)
         y_pred = yolo([concat])
@@ -45,13 +46,13 @@ def check_custom_integration():
 
         # get visualizer
         bb_gt_decoder = gt_bb_decoder(image, y_true)
-        plot_image_with_bboxes(image, bb_gt_decoder.bounding_boxes, 'gt')
+        # plot_image_with_bboxes(image, bb_gt_decoder.bounding_boxes, 'gt')
         bb__decoder = bb_decoder(image, y_pred[0, ...])
-        plot_image_with_bboxes(image, bb__decoder.bounding_boxes, 'pred')
+        # plot_image_with_bboxes(image, bb__decoder.bounding_boxes, 'pred')
         bb_car = bb_car_decoder(image, y_pred[0, ...])
-        plot_image_with_bboxes(image, bb_car.bounding_boxes, 'pred')
+        # plot_image_with_bboxes(image, bb_car.bounding_boxes, 'pred')
         bb_gt_car = bb_car_gt_decoder(image, y_true)
-        plot_image_with_bboxes(image, bb_gt_car.bounding_boxes, 'gt')
+        # plot_image_with_bboxes(image, bb_gt_car.bounding_boxes, 'gt')
 
         # get custom meta data
         filename = metadata_filename(idx, responses_set)
@@ -71,18 +72,14 @@ def check_custom_integration():
         class_exist_veg_func = is_class_exist_veg_and_building(21, 11)
         class_exist_veg = class_exist_veg_func(idx, responses_set)
 
-
         # get loss and custom metrics
         ls = od_loss(y_true, y_pred)
         metrices_all = od_metrics_dict(y_true, y_pred)
-        for id in CATEGORIES_id_no_background:
-            iou_func = get_class_mean_iou(id)
-            iou = iou_func(y_true, y_pred)
+        iou = iou_dic(y_true, y_pred)
+        bus_bbox = bus_bbox_cnt_pred(y_pred)
 
     print("Custom tests finished successfully")
 
+
 if __name__ == '__main__':
     check_custom_integration()
-
-
-

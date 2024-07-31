@@ -13,7 +13,7 @@ google-cloud-storage = "^2.10.0"
 pyyaml = "^6.0"
 datasets = "^2.13.1"
 matplotlib = "3.7.2"
-
+tensorflow-macos = "2.13.0"
 #onnxruntime = "^1.15.1"
 tensorflow = "^2.13.0"
 #onnx2keras = "^0.0.24"
@@ -24,8 +24,8 @@ onnx2keras = "^0.0.24"
 opencv-python = "^4.8.0.74"
 webcolors = "^1.13"
 tf = "^1.0.0"
-code-loader = "1.0.9"
-code-loader-helpers = "1.0.4"
+code-loader = "^1.0.42"
+code-loader-helpers = "^1.0.11"
 
 
 [build-system]
