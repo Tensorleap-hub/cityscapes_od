@@ -195,7 +195,7 @@ def avg_bb_area_metadata(valid_bbs) -> float:
 
 def count_small_bbs(bboxes) -> float:
     areas = bboxes[..., 2] * bboxes[..., 3]
-    return float(len(areas[areas < CONFIG['SMALL_BBS_TH']]))
+    return int(len(areas[areas < CONFIG['SMALL_BBS_TH']]))
 
 def number_of_bb(bboxes) -> int:
     number_of_bb = np.count_nonzero(bboxes[..., -1] != CONFIG['BACKGROUND_LABEL'])

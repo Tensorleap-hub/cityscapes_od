@@ -162,49 +162,25 @@ def metadata_bbs(idx: int, data: PreprocessResponse) -> Dict[str, Union[float, i
     bboxes = np.array(ground_truth_bbox(idx, data))
     valid_bbs = bboxes[bboxes[..., -1] != CONFIG['BACKGROUND_LABEL']]
     res = {
-        "instances_number": instances_num(valid_bbs),
+        "instances_number": int(instances_num(valid_bbs)),
         "bb_aspect_ratio": avg_bb_aspect_ratio(valid_bbs),
         "avg_bb_area": avg_bb_area_metadata(valid_bbs),
         "small_bbs": count_small_bbs(bboxes),
         "bbox_number": number_of_bb(bboxes)
 
     }
+    for c_label in CATEGORIES_no_background:
+        label = CATEGORIES.index(c_label)
+        valid_bbs = bboxes[bboxes[..., -1] == label]
+        num_bbs = valid_bbs.shape[0]
+        res[f"{c_label}_count"] = num_bbs
+        res[f"does_{c_label}_exist"] = num_bbs > 0
+    class_id_veg = 21
+    class_id_building = 11
+    is_veg_exist = (bboxes[..., -1] == class_id_veg).any()
+    is_building_exist = (bboxes[..., -1] == class_id_building).any()
+    res['veg_building_exist'] = is_veg_exist and is_building_exist
     return res
-
-
-#
-def label_instances_num(class_label: str) -> Callable[[int, PreprocessResponse], float]:
-    def func(index: int, subset: PreprocessResponse) -> float:
-        bbs = np.array(ground_truth_bbox(index, subset))
-        label = CATEGORIES.index(class_label)
-        valid_bbs = bbs[bbs[..., -1] == label]
-        return float(valid_bbs.shape[0])
-
-    func.__name__ = f'metadata_{class_label}_instances_count'
-    return func
-
-
-def is_class_exist_gen(class_id: int) -> Callable[[int, PreprocessResponse], float]:
-    def func(index: int, subset: PreprocessResponse):
-        bbs = np.array(ground_truth_bbox(index, subset))
-        is_i_exist = (bbs[..., -1] == class_id).any()
-        return is_i_exist
-
-    func.__name__ = f'metadata_{class_id}_instances_count'
-    return func
-
-
-def is_class_exist_veg_and_building(class_id_veg: int, class_id_building: int) -> Callable[
-    [int, PreprocessResponse], float]:
-    def func(index: int, subset: PreprocessResponse):
-        bbs = np.array(ground_truth_bbox(index, subset))
-        is_veg_exist = (bbs[..., -1] == class_id_veg).any()
-        is_building_exist = (bbs[..., -1] == class_id_building).any()
-        return is_veg_exist and is_building_exist
-
-    func.__name__ = f'metadata_class_veg_and_class_building_instances_count'
-    return func
-
 
 # ---------------------------------------------------------metrics------------------------------------------------------
 
@@ -255,7 +231,7 @@ def gt_bb_decoder(image: np.ndarray, bb_gt: tf.Tensor) -> LeapImageWithBBox:
     bb_object: List[BoundingBox] = bb_array_to_object(bb_gt, iscornercoded=False, bg_label=CONFIG['BACKGROUND_LABEL'],
                                                       is_gt=True)
     bb_object = [bbox for bbox in bb_object if bbox.label in CATEGORIES_no_background]
-    return LeapImageWithBBox(data=(image * 255).astype(np.float32), bounding_boxes=bb_object)
+    return LeapImageWithBBox(data=(image * 255).astype(np.uint8), bounding_boxes=bb_object)
 
 
 def bb_car_gt_decoder(image: np.ndarray, bb_gt: tf.Tensor) -> LeapImageWithBBox:
@@ -265,7 +241,7 @@ def bb_car_gt_decoder(image: np.ndarray, bb_gt: tf.Tensor) -> LeapImageWithBBox:
     bb_object: List[BoundingBox] = bb_array_to_object(bb_gt, iscornercoded=False, bg_label=CONFIG['BACKGROUND_LABEL'],
                                                       is_gt=True)
     bb_object = [bbox for bbox in bb_object if bbox.label == 'car']
-    return LeapImageWithBBox(data=(image * 255).astype(np.float32), bounding_boxes=bb_object)
+    return LeapImageWithBBox(data=(image * 255).astype(np.uint8), bounding_boxes=bb_object)
 
 
 def bb_decoder(image: np.ndarray, predictions: tf.Tensor) -> LeapImageWithBBox:
@@ -274,7 +250,7 @@ def bb_decoder(image: np.ndarray, predictions: tf.Tensor) -> LeapImageWithBBox:
     """
     bb_object = get_predict_bbox_list(predictions)
     bb_object = [bbox for bbox in bb_object if bbox.label in CATEGORIES_no_background]
-    return LeapImageWithBBox(data=(image * 255).astype(np.float32), bounding_boxes=bb_object)
+    return LeapImageWithBBox(data=(image * 255).astype(np.uint8), bounding_boxes=bb_object)
 
 
 def bb_car_decoder(image: np.ndarray, predictions: tf.Tensor) -> LeapImageWithBBox:
@@ -283,7 +259,7 @@ def bb_car_decoder(image: np.ndarray, predictions: tf.Tensor) -> LeapImageWithBB
     """
     bb_object = get_predict_bbox_list(predictions)
     bb_object = [bbox for bbox in bb_object if bbox.label == 'car']
-    return LeapImageWithBBox(data=(image * 255).astype(np.float32), bounding_boxes=bb_object)
+    return LeapImageWithBBox(data=(image * 255).astype(np.uint8), bounding_boxes=bb_object)
 
 
 def bus_bbox_cnt_pred(predictions: tf.Tensor) -> float:
@@ -317,12 +293,6 @@ leap_binder.set_metadata(metadata_brightness, name='metadata_brightness')
 leap_binder.set_metadata(metadata_json, name='metadata_json')
 leap_binder.set_metadata(metadata_category_avg_size, name='metadata_category_avg_size')
 leap_binder.set_metadata(metadata_bbs, name='metadata_bbs')
-for label in CATEGORIES_no_background:
-    leap_binder.set_metadata(label_instances_num(label), f'{label} number_metadata')
-for id in CATEGORIES_id_no_background:
-    class_name = Cityscapes.get_class_name(id)
-    leap_binder.set_metadata(is_class_exist_gen(id), f'does_class_number_{id}_exist')
-leap_binder.set_metadata(is_class_exist_veg_and_building(21, 11), "does_veg_and_buildeng_class_exist")
 leap_binder.set_metadata(gt_all_bbox_count, "gt_all_bboxes_counts")
 
 # set visualizer
