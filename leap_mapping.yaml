@@ -34,11 +34,7 @@ decorators:
         - outputKey: bbox
           operation: GroundTruth
           id: '332'
-    outputs:
-      loss:
-        - inputKey: '0'
-          operation: Adam
-          id: '333'
+    outputs: {}
   - operation: Input
     data:
       type: Input
@@ -79,25 +75,11 @@ decorators:
           operation: Metric
           id: '363'
         - inputKey: bb_gt
-          operation: CustomLoss
-          id: '330'
-        - inputKey: bb_gt
           operation: Visualizer
           id: '365'
-  - operation: Adam
-    data:
-      type: Optimizer
-      custom_input_keys:
-        - 333-0
-      arg_names:
-        - '0'
-    id: '333'
-    inputs:
-      '0':
-        - outputKey: loss
+        - inputKey: bb_gt
           operation: CustomLoss
           id: '330'
-    outputs: {}
   - operation: Visualizer
     data:
       type: Visualizer

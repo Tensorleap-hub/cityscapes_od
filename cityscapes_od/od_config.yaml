@@ -1,5 +1,7 @@
+USE_LOCAL: false
 BUCKET_NAME: datasets-reteai #tl-private-datasets
 PROJECT_ID: splendid-flow-231921 #tl-private-dev-project
+ROOT_DATASET_PATH: Cityscapes
 MODEL_FORMAT: inference
 MAX_BB_PER_IMAGE: 50
 

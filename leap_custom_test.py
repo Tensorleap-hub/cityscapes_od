@@ -1,6 +1,8 @@
 import os
 import numpy as np
 import tensorflow as tf
+
+from cityscapes_od.config import CONFIG
 from cityscapes_od.metrics import od_loss
 from leap_binder import (load_cityscapes_data_leap, ground_truth_bbox, \
     od_metrics_dict, gt_bb_decoder, bb_decoder, bb_car_decoder, bb_car_gt_decoder,
@@ -9,13 +11,13 @@ from os import environ
 from code_loader.helpers.visualizer.visualize import visualize
 
 def check_custom_integration():
-    if environ.get('AUTH_SECRET') is None:
+    if not CONFIG['USE_LOCAL'] and environ.get('AUTH_SECRET') is None:
         print("The AUTH_SECRET system variable must be initialized with the relevant secret to run this test")
         exit(-1)
     print("started custom tests")
     # preprocess function
     check_generic = True
-    plot_vis = True
+    plot_vis = False
     if check_generic:
         leap_binder.check()
     print("started custom tests")
@@ -24,7 +26,7 @@ def check_custom_integration():
     model_path = ('model/CSYolov7.h5')
     yolo = tf.keras.models.load_model(os.path.join(dir_path, model_path))
     for responses_set in responses:
-        for idx in range(3):
+        for idx in range(10):
             # get input and gt
             image = encode_image(idx, responses_set)
             bounding_boxes_gt = ground_truth_bbox(idx, responses_set)
