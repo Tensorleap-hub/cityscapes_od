@@ -11,7 +11,6 @@ of the standard ADAS benchmarks used for multiple vision-related tasks.
 **Tensorleap** helps to explore the latent space of a dataset and find new and important insights. It can also be used
 to find unlabeled clusters or miss-labeling in the dataset in the most efficient way.
 
-
 ### Latent Space Exploration
 The following plot illustrates a population exploration map, depicting the similarity among samples based on the latent 
 space of a trained model. This map is constructed using the extracted features of the model.
@@ -96,11 +95,18 @@ This quick start guide will walk you through the steps to get started with this 
 
 Before you begin, ensure that you have the following prerequisites installed:
 
-- **[Python](https://www.python.org/)** (version 3.7 or higher).
+- **[Python](https://www.python.org/)** (version 3.8 or higher).
 - **[Poetry](https://python-poetry.org/)**.
 - **[Tensorleap](https://tensorleap.ai/)** platform access. To request a free trial click [here](https://meetings.hubspot.com/esmus/free-trial).
 - **[Tensorleap CLI](https://github.com/tensorleap/leap-cli)**.
 
+# Datset Prerequisites
+
+To run this project you would need to download the [Cityscapes](https://www.cityscapes-dataset.com/) dataset.
+The dataset subsets being used for this project are:
+- gtFine_trainvaltest
+- leftImg8bit_trainvaltest
+- vehicle_trainvaltest
 
 ## Tensorleap **CLI Installation**
 
