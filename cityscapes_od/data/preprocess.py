@@ -110,8 +110,7 @@ def load_cityscapes_data() -> Tuple[List[List[str]], List[List[str]], List[List[
     the images and their associated annotations for the respective subsets of the Cityscapes dataset.
     """
     np.random.seed(42)
-    bucket = _connect_to_gcs_and_return_bucket(CONFIG['BUCKET_NAME'])
-    dataset_path = Path('Cityscapes')
+    dataset_path = Path(CONFIG['ROOT_DATASET_PATH'])
     responses = []
     TRAIN_PERCENT = 0.8
     VAL_PERCENT = 0.2
@@ -130,7 +129,17 @@ def load_cityscapes_data() -> Tuple[List[List[str]], List[List[str]], List[List[
     all_metadata = [[], [], []]
     for i, (dataset, folder) in enumerate(zip(['train', 'val', 'test'], [FOLDERS_NAME_TRAIN, FOLDERS_NAME_VAL, FOLDERS_NAME_TEST])):
         for folder_name in folder:
-            image_list = [obj.name for obj in bucket.list_blobs(prefix=str(dataset_path / "leftImg8bit_trainvaltest/leftImg8bit" / dataset / folder_name))]
+            if not CONFIG['USE_LOCAL']:
+                bucket = _connect_to_gcs_and_return_bucket(CONFIG['BUCKET_NAME'])
+                image_list = [obj.name for obj in bucket.list_blobs(prefix=str(dataset_path / "leftImg8bit_trainvaltest/leftImg8bit" / dataset / folder_name))]
+            else:
+                try:
+                    image_list = [p.name for p in
+                                  (Path(CONFIG['ROOT_DATASET_PATH']) / "leftImg8bit_trainvaltest" / "leftImg8bit" / dataset / folder_name).iterdir()
+                                  if p.is_file()]
+                except FileNotFoundError:
+                    print(f"No files from folfder {folder_name}")
+                    image_list = []
             permuted_list = np.random.permutation(image_list)
             file_names = ["_".join(os.path.basename(pth).split("_")[:-1]) for pth in permuted_list]
             images = [str(dataset_path / "leftImg8bit_trainvaltest/leftImg8bit" / dataset / folder_name / fn) + "_leftImg8bit.png" for fn in file_names]

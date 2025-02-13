@@ -37,6 +37,8 @@ def _download(cloud_file_path: str, local_file_path: Optional[str] = None) -> st
     Output: Returns the path (str) to the downloaded file on the local filesystem.
     """
     # if local_file_path is not specified saving in home dir
+    if CONFIG['USE_LOCAL']:
+        return cloud_file_path
     if local_file_path is None:
         home_dir = os.getenv("HOME")
         local_file_path = os.path.join(home_dir, "Tensorleap", CONFIG['BUCKET_NAME'], cloud_file_path)
