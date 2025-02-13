@@ -1,5 +1,8 @@
 from typing import Tuple, List, Any
+
+import numpy as np
 import tensorflow as tf
+from code_loader.inner_leap_binder.leapbinder_decorators import tensorleap_custom_metric, tensorleap_custom_loss
 
 from cityscapes_od.utils.general_utils import bb_array_to_object, get_predict_bbox_list
 from cityscapes_od.utils.yolo_utils import LOSS_FN
@@ -9,30 +12,32 @@ from cityscapes_od.data.preprocess import Cityscapes, CATEGORIES_no_background, 
 from cityscapes_od.config import CONFIG
 
 
-def compute_losses(obj_true: tf.Tensor, od_pred: tf.Tensor) -> Tuple[tf.Tensor, tf.Tensor, tf.Tensor]:
+def compute_losses(obj_true: np.ndarray, od_pred: np.ndarray) -> Tuple[List[tf.Tensor], List[tf.Tensor], List[tf.Tensor]]:
     """
     Computes the sum of the classification (CE loss) and localization (regression) losses from all heads
     """
+    od_pred_tf = tf.convert_to_tensor(od_pred)
+    obj_true_tf = tf.convert_to_tensor(obj_true)
     decoded = False if CONFIG['MODEL_FORMAT'] != "inference" else True
-    class_list_reshaped, loc_list_reshaped = reshape_output_list(od_pred, decoded=decoded,
+    class_list_reshaped, loc_list_reshaped = reshape_output_list(od_pred_tf, decoded=decoded,
                                                                  image_size=CONFIG['IMAGE_SIZE'])  # add batch
-    loss_l, loss_c, loss_o = LOSS_FN(y_true=obj_true, y_pred=(loc_list_reshaped, class_list_reshaped))
+    loss_l, loss_c, loss_o = LOSS_FN(y_true=obj_true_tf, y_pred=(loc_list_reshaped, class_list_reshaped))
 
     return loss_l, loss_c, loss_o
 
-
-def od_loss(bb_gt: tf.Tensor, y_pred: tf.Tensor) -> tf.Tensor:  # return batch
+@tensorleap_custom_loss('od_loss')
+def od_loss(bb_gt: np.ndarray, y_pred: np.ndarray) -> np.ndarray:  # return batch
     """
     Sums the classification and regression loss
     """
     loss_l, loss_c, loss_o = compute_losses(bb_gt, y_pred)
     combined_losses = [l + c + o for l, c, o in zip(loss_l, loss_c, loss_o)]
-    sum_loss = tf.reduce_sum(combined_losses, axis=0)
-    non_nan_loss = tf.where(tf.math.is_nan(sum_loss), tf.zeros_like(sum_loss), sum_loss)  # LOSS 0 for NAN losses
+    sum_loss = np.sum(combined_losses, axis=0)
+    non_nan_loss = np.where(np.isnan(sum_loss), np.zeros_like(sum_loss), sum_loss)
     return non_nan_loss
 
 
-def calc_od_losses(bb_gt: tf.Tensor, detection_pred: tf.Tensor) -> Tuple[Any, Any, Any]:  # return batch
+def calc_od_losses(bb_gt: np.ndarray, detection_pred: np.ndarray) -> Tuple[Any, Any, Any]:  # return batch
     """
     This function calculates the total regression (localization) loss for each head of the object detection model.
     Parameters:
@@ -42,7 +47,7 @@ def calc_od_losses(bb_gt: tf.Tensor, detection_pred: tf.Tensor) -> Tuple[Any, An
     A tensor representing the total regression (localization), classification and Objectness losses for each head.
     """
     loss_l, loss_c, loss_o = compute_losses(bb_gt, detection_pred)
-    return tf.reduce_sum(loss_l, axis=0)[:, 0], tf.reduce_sum(loss_c, axis=0)[:, 0], tf.reduce_sum(loss_o, axis=0)[:, 0]   # shape of batch
+    return np.sum(loss_l, axis=0)[:, 0], np.sum(loss_c, axis=0)[:, 0], np.sum(loss_o, axis=0)[:, 0]# shape of batch
 
 
 def convert_to_xyxy(bounding_boxes: List) -> List[List[int]]:
