@@ -130,16 +130,17 @@ def bb_array_to_object(bb_array: Union[NDArray[float], tf.Tensor], iscornercoded
     return bb_list
 
 
-def get_predict_bbox_list(data: tf.Tensor) ->List[BoundingBox]:
+def get_predict_bbox_list(data: np.ndarray) ->List[BoundingBox]:
     """
     Description: This function takes a TensorFlow tensor data as input and returns a list of bounding boxes representing predicted annotations.
     Input: data (tf.Tensor): A TensorFlow tensor representing the output data.
     Output: bb_object (List[BoundingBox]): A list of bounding box objects representing the predicted annotations.
     """
+    tf_data = tf.convert_to_tensor(data)
     from_logits = True if CONFIG['MODEL_FORMAT'] != "inference" else False
     decoded = False if CONFIG['MODEL_FORMAT'] != "inference" else True
     class_list_reshaped, loc_list_reshaped = reshape_output_list(
-        np.reshape(data, (1, *data.shape)), decoded=decoded, image_size=CONFIG['IMAGE_SIZE'])
+        np.reshape(tf_data, (1, *tf_data.shape)), decoded=decoded, image_size=CONFIG['IMAGE_SIZE'])
     # add batch
     outputs = DECODER(loc_list_reshaped,
                       class_list_reshaped,

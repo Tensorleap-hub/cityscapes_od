@@ -1,8 +1,6 @@
-from typing import Dict, Callable, Union
+from typing import Dict, Callable, Union, Tuple
 from PIL import Image
 import json
-from tensorflow import Tensor
-
 from typing import List
 import numpy as np
 import tensorflow as tf
@@ -21,11 +19,14 @@ from code_loader.contract.visualizer_classes import LeapImageWithBBox
 from code_loader import leap_binder
 from code_loader.contract.datasetclasses import PreprocessResponse
 from code_loader.contract.enums import (
-    LeapDataType
+    LeapDataType, MetricDirection
 )
-
+from code_loader.inner_leap_binder.leapbinder_decorators import (tensorleap_preprocess, tensorleap_gt_encoder,
+                                                                 tensorleap_input_encoder, tensorleap_metadata,
+                                                                 tensorleap_custom_visualizer, tensorleap_custom_metric)
 
 # ----------------------------------------------------data processing--------------------------------------------------
+@tensorleap_preprocess()
 def load_cityscapes_data_leap() -> List[PreprocessResponse]:
     all_images, all_gt_images, all_gt_labels, all_gt_labels_for_bbx, all_file_names, all_metadata, all_cities = \
         load_cityscapes_data()
@@ -57,15 +58,15 @@ def load_cityscapes_data_leap() -> List[PreprocessResponse]:
 
 
 # ------------------------------------------input and gt------------------------------------------
-
+@tensorleap_input_encoder('image')
 def encode_image(idx: int, data: PreprocessResponse) -> np.ndarray:
     data = data.data
     cloud_path = data['image_path'][idx]
     fpath = _download(str(cloud_path))
     img = np.array(Image.open(fpath).convert('RGB').resize(CONFIG['IMAGE_SIZE'])) / 255.
-    return img
+    return img.astype(np.float32)
 
-
+@tensorleap_gt_encoder('bbox')
 def ground_truth_bbox(idx: int, data: PreprocessResponse) -> np.ndarray:
     """
     Description: This function takes an integer index idx and a PreprocessResponse object data as input and returns an
@@ -82,26 +83,20 @@ def ground_truth_bbox(idx: int, data: PreprocessResponse) -> np.ndarray:
     with open(fpath, 'r') as file:
         json_data = json.load(file)
     bounding_boxes = extract_bounding_boxes_from_instance_segmentation_polygons(json_data)
-    return bounding_boxes
+    return bounding_boxes.astype(np.float32)
 
 
 # ----------------------------------------------------------metadata----------------------------------------------------
-def metadata_filename(idx: int, data: PreprocessResponse) -> str:
-    return data.data['file_names'][idx]
-
-
-def metadata_city(idx: int, data: PreprocessResponse) -> str:
-    return data.data['cities'][idx]
-
-
-def metadata_idx(idx: int, data: PreprocessResponse) -> int:
-    return idx
-
-
-def metadata_brightness(idx: int, data: PreprocessResponse) -> float:
+@tensorleap_metadata("misc")
+def misc_metadata(idx: int, data: PreprocessResponse) -> Dict[str, Union[str, int]]:
     img = encode_image(idx, data)
-    return np.mean(img)
-
+    misc_dict = {
+        "filename": data.data['file_names'][idx],
+        "city": data.data['cities'][idx],
+        "idx": idx,
+        "brightness": np.mean(img)
+     }
+    return misc_dict
 
 def get_metadata_json(idx: int, data: PreprocessResponse) -> Dict[str, str]:
     cloud_path = data.data['metadata'][idx]
@@ -110,7 +105,7 @@ def get_metadata_json(idx: int, data: PreprocessResponse) -> Dict[str, str]:
         metadata_dict = json.loads(f.read())
     return metadata_dict
 
-
+@tensorleap_metadata("metadata_json")
 def metadata_json(idx: int, data: PreprocessResponse):
     json_dict = get_metadata_json(idx, data)
     res = {
@@ -125,7 +120,7 @@ def metadata_json(idx: int, data: PreprocessResponse):
 
 
 #
-
+@tensorleap_metadata("gt_all_bboxes_counts")
 def gt_all_bbox_count(idx: int, data: PreprocessResponse):
     data = data.data
     cloud_path = data['gt_bbx_path'][idx]
@@ -136,7 +131,7 @@ def gt_all_bbox_count(idx: int, data: PreprocessResponse):
     return len(objects)
 
 
-def category_percent(idx: int, data: PreprocessResponse, class_id: int) -> float:
+def category_percent(idx: int, data: PreprocessResponse, class_id: int) -> Tuple[np.ndarray, float]:
     bbs = np.array(ground_truth_bbox(idx, data))
     valid_bbs = bbs[bbs[..., -1] != CONFIG['BACKGROUND_LABEL']]
     category_bbs = valid_bbs[valid_bbs[..., -1] == class_id]
@@ -146,18 +141,18 @@ def category_percent(idx: int, data: PreprocessResponse, class_id: int) -> float
 def category_avg_size(idx: int, data: PreprocessResponse, class_id: int) -> float:
     bbs, car_val = category_percent(idx, data, class_id)
     instances_cnt = number_of_bb(bbs)
-    return np.round(car_val / instances_cnt, 3) if instances_cnt > 0 else 0
+    return np.float32(np.round(car_val / instances_cnt, 3) if instances_cnt > 0 else 0)
 
-
+@tensorleap_metadata("metadata_category_avg_size")
 def metadata_category_avg_size(idx: int, data: PreprocessResponse) -> Dict[str, float]:
     res = {
-        "metadata_person_category_avg_size": category_avg_size(idx, data, 24),
-        "metadata_car_category_avg_size": category_avg_size(idx, data, 26)
+        "metadata_person_category_avg_size": np.float32(category_avg_size(idx, data, 24)),
+        "metadata_car_category_avg_size": np.float32(category_avg_size(idx, data, 26))
     }
     return res
 
 
-#
+@tensorleap_metadata("metadata_bbs")
 def metadata_bbs(idx: int, data: PreprocessResponse) -> Dict[str, Union[float, int, str]]:
     bboxes = np.array(ground_truth_bbox(idx, data))
     valid_bbs = bboxes[bboxes[..., -1] != CONFIG['BACKGROUND_LABEL']]
@@ -184,17 +179,22 @@ def metadata_bbs(idx: int, data: PreprocessResponse) -> Dict[str, Union[float, i
 
 # ---------------------------------------------------------metrics------------------------------------------------------
 
-
-def class_mean_iou(y_true: tf.Tensor, y_pred: tf.Tensor, class_id: str) -> tf.Tensor:
+# set custom metrics
+def class_mean_iou(y_true: tf.Tensor, y_pred: tf.Tensor, class_id: int) -> np.ndarray:
     iou = calculate_iou(y_true, y_pred, class_id)
-    return tf.convert_to_tensor(np.array([iou]), dtype=tf.float32)
+    return np.array([iou], dtype=np.float32)
 
+@tensorleap_custom_metric("ious", direction=MetricDirection.Upward)
+def iou_dic(y_true: np.ndarray, y_pred: np.ndarray) -> Dict[str, Union[float, int]]:
 
-def iou_dic(y_true: tf.Tensor, y_pred: tf.Tensor) -> dict:
     if len(y_true.shape) == 2:
         y_true = tf.expand_dims(y_true, 0)
+    else:
+        y_true = tf.convert_to_tensor(y_true)
     if len(y_pred.shape) == 2:
         y_pred = tf.expand_dims(y_pred, 0)
+    else:
+        y_pred = tf.convert_to_tensor(y_pred)
     res_dic = dict()
     mean_iou = list()
     for c_id in CATEGORIES_id_no_background:
@@ -203,11 +203,13 @@ def iou_dic(y_true: tf.Tensor, y_pred: tf.Tensor) -> dict:
         res_dic[f"{class_name}"] = res
         if tf.reduce_sum(res) > 0:
             mean_iou += [res]  # todo multiply by pixels
-    res_dic["meanIOU"] = tf.reduce_mean(mean_iou, 0) if len(mean_iou) > 0 else tf.zeros(shape=(1))
+    res_dic["meanIOU"] = np.mean(mean_iou, axis=0) if len(mean_iou) > 0 else np.zeros(shape=(1,))
     return res_dic
 
 
-def od_metrics_dict(bb_gt: tf.Tensor, detection_pred: tf.Tensor) -> Dict[str, tf.Tensor]:
+#leap_binder.add_custom_metric(od_metrics_dict, 'od_metrics')
+@tensorleap_custom_metric('od_metrics_dict')
+def od_metrics_dict(bb_gt: np.ndarray, detection_pred: np.ndarray) -> Dict[str, np.ndarray]:
     losses = calc_od_losses(bb_gt, detection_pred)
     metric_functions = {
         "Regression_metric": losses[0],
@@ -216,8 +218,18 @@ def od_metrics_dict(bb_gt: tf.Tensor, detection_pred: tf.Tensor) -> Dict[str, tf
     }
     return metric_functions
 
+@tensorleap_custom_metric("bus_cnt_bbox_pred", direction=MetricDirection.Upward)
+def bus_bbox_cnt_pred(predictions: tf.Tensor) -> int:
+    if len(predictions.shape) == 2:
+        predictions = tf.expand_dims(predictions, 0)
+    bb_object = get_predict_bbox_list(predictions[0, ...])
+    bb_object = [bbox for bbox in bb_object if bbox.label == 'bus']
+    return np.array(len(bb_object))[np.newaxis]
 
-def gt_bb_decoder(image: np.ndarray, bb_gt: tf.Tensor) -> LeapImageWithBBox:
+# ------------------------------------------------------visualizers---------------------------------------------------
+
+@tensorleap_custom_visualizer("bb_gt_decoder", LeapDataType.ImageWithBBox)
+def gt_bb_decoder(image: np.ndarray, bb_gt: np.ndarray) -> LeapImageWithBBox:
     """
     This function overlays ground truth bounding boxes (BBs) on the input image.
 
@@ -233,8 +245,8 @@ def gt_bb_decoder(image: np.ndarray, bb_gt: tf.Tensor) -> LeapImageWithBBox:
     bb_object = [bbox for bbox in bb_object if bbox.label in CATEGORIES_no_background]
     return LeapImageWithBBox(data=(image * 255).astype(np.uint8), bounding_boxes=bb_object)
 
-
-def bb_car_gt_decoder(image: np.ndarray, bb_gt: tf.Tensor) -> LeapImageWithBBox:
+@tensorleap_custom_visualizer("bb_car_gt_decoder", LeapDataType.ImageWithBBox)
+def bb_car_gt_decoder(image: np.ndarray, bb_gt: np.ndarray) -> LeapImageWithBBox:
     """
     Overlays the BB predictions on the image
     """
@@ -243,8 +255,8 @@ def bb_car_gt_decoder(image: np.ndarray, bb_gt: tf.Tensor) -> LeapImageWithBBox:
     bb_object = [bbox for bbox in bb_object if bbox.label == 'car']
     return LeapImageWithBBox(data=(image * 255).astype(np.uint8), bounding_boxes=bb_object)
 
-
-def bb_decoder(image: np.ndarray, predictions: tf.Tensor) -> LeapImageWithBBox:
+@tensorleap_custom_visualizer("bb_decoder", LeapDataType.ImageWithBBox)
+def bb_decoder(image: np.ndarray, predictions: np.ndarray) -> LeapImageWithBBox:
     """
     Overlays the BB predictions on the image
     """
@@ -252,8 +264,8 @@ def bb_decoder(image: np.ndarray, predictions: tf.Tensor) -> LeapImageWithBBox:
     bb_object = [bbox for bbox in bb_object if bbox.label in CATEGORIES_no_background]
     return LeapImageWithBBox(data=(image * 255).astype(np.uint8), bounding_boxes=bb_object)
 
-
-def bb_car_decoder(image: np.ndarray, predictions: tf.Tensor) -> LeapImageWithBBox:
+@tensorleap_custom_visualizer("bb_car_decoder", LeapDataType.ImageWithBBox)
+def bb_car_decoder(image: np.ndarray, predictions: np.ndarray) -> LeapImageWithBBox:
     """
     Overlays the BB predictions on the image
     """
@@ -261,50 +273,9 @@ def bb_car_decoder(image: np.ndarray, predictions: tf.Tensor) -> LeapImageWithBB
     bb_object = [bbox for bbox in bb_object if bbox.label == 'car']
     return LeapImageWithBBox(data=(image * 255).astype(np.uint8), bounding_boxes=bb_object)
 
-
-def bus_bbox_cnt_pred(predictions: tf.Tensor) -> float:
-    if len(predictions.shape) == 2:
-        predictions = tf.expand_dims(predictions, 0)
-    bb_object = get_predict_bbox_list(predictions[0, ...])
-    bb_object = [bbox for bbox in bb_object if bbox.label == 'bus']
-    return tf.expand_dims(tf.convert_to_tensor(len(bb_object), dtype=tf.float32), axis=0)
-
-
 # ---------------------------------------------------------binding------------------------------------------------------
-
-# preprocess function
-leap_binder.set_preprocess(load_cityscapes_data_leap)
-
-# set input and gt
-leap_binder.set_input(encode_image, 'image')
-leap_binder.set_ground_truth(ground_truth_bbox, 'bbox')
-
 # set prediction
 leap_binder.add_prediction(name='object detection', labels=["x", "y", "w", "h", "obj"] + [cl for cl in CATEGORIES])
-
-# set loss
-leap_binder.add_custom_loss(od_loss, 'od_loss')
-
-# set meata_data
-leap_binder.set_metadata(metadata_filename, name='metadata_filename')
-leap_binder.set_metadata(metadata_city, name='metadata_city')
-leap_binder.set_metadata(metadata_idx, name='metadata_idx')
-leap_binder.set_metadata(metadata_brightness, name='metadata_brightness')
-leap_binder.set_metadata(metadata_json, name='metadata_json')
-leap_binder.set_metadata(metadata_category_avg_size, name='metadata_category_avg_size')
-leap_binder.set_metadata(metadata_bbs, name='metadata_bbs')
-leap_binder.set_metadata(gt_all_bbox_count, "gt_all_bboxes_counts")
-
-# set visualizer
-leap_binder.set_visualizer(gt_bb_decoder, 'bb_gt_decoder', LeapDataType.ImageWithBBox)
-leap_binder.set_visualizer(bb_decoder, 'bb_decoder', LeapDataType.ImageWithBBox)
-leap_binder.set_visualizer(bb_car_gt_decoder, 'bb_car_gt_decoder', LeapDataType.ImageWithBBox)
-leap_binder.set_visualizer(bb_car_decoder, 'bb_car_decoder', LeapDataType.ImageWithBBox)
-
-# set custom metrics
-leap_binder.add_custom_metric(od_metrics_dict, 'od_metrics')
-leap_binder.add_custom_metric(bus_bbox_cnt_pred, 'bus_cnt_bbox_pred')
-leap_binder.add_custom_metric(iou_dic, "ious")
 
 if __name__ == '__main__':
     leap_binder.check()
