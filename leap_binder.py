@@ -96,6 +96,9 @@ def metadata_brightness(idx: int, data: PreprocessResponse) -> float:
     return np.mean(img)
 
 def get_metadata_json(idx: int, data: PreprocessResponse) -> Dict[str,str]:
+    if not data.data.get('metadata'):
+        return {}
+
     cloud_path = data.data['metadata'][idx]
     fpath = _download(cloud_path)
     with open(fpath, 'r') as f:
@@ -104,6 +107,16 @@ def get_metadata_json(idx: int, data: PreprocessResponse) -> Dict[str,str]:
 
 def metadata_json(idx: int, data: PreprocessResponse):
     json_dict = get_metadata_json(idx, data)
+    if not json_dict:
+        return {
+            "gps_heading": float(-1),
+            "gps_latitude": float(-1),
+            "gps_longtitude": float(-1),
+            "outside_temperature": float(-1),
+            "speed": float(-1),
+            "yaw_rate": float(-1)
+        }
+
     res = {
         "gps_heading": json_dict['gpsHeading'],
         "gps_latitude": json_dict['gpsLatitude'],
@@ -187,10 +200,12 @@ def is_class_exist_veg_and_building(class_id_veg: int, class_id_building: int) -
 
 # ---------------------------------------------------------metrics------------------------------------------------------
 
-def get_class_mean_iou(class_id: int) -> Callable[[Tensor, Tensor], Tensor]:
-    def class_mean_iou(y_true: tf.Tensor, y_pred: tf.Tensor) -> tf.Tensor:
+def get_class_mean_iou(class_id: int) -> Callable[[np.ndarray, np.ndarray], np.ndarray]:
+    def class_mean_iou(y_true: np.ndarray, y_pred: np.ndarray) -> np.ndarray:
+        y_true = tf.convert_to_tensor(y_true)
+        y_pred = tf.convert_to_tensor(y_pred)
         iou = calculate_iou(y_true, y_pred, class_id)
-        return tf.convert_to_tensor(np.array([iou]), dtype=tf.float32)
+        return np.array([iou])
 
     return class_mean_iou
 
@@ -218,16 +233,16 @@ def iou_dic(y_true: tf.Tensor, y_pred: tf.Tensor) -> dict:
 
 
 
-def od_metrics_dict(bb_gt: tf.Tensor, detection_pred: tf.Tensor) -> Dict[str, tf.Tensor]:
-    losses = calc_od_losses(bb_gt, detection_pred)
+def od_metrics_dict(bb_gt: np.ndarray, detection_pred: np.ndarray) -> Dict[str, np.ndarray]:
+    losses = calc_od_losses(tf.convert_to_tensor(bb_gt), tf.convert_to_tensor(detection_pred))
     metric_functions = {
-        "Regression_metric": losses[0],
-        "Classification_metric": losses[1],
-        "Objectness_metric": losses[2],
+        "Regression_metric": losses[0].numpy(),
+        "Classification_metric": losses[1].numpy(),
+        "Objectness_metric": losses[2].numpy(),
     }
     return metric_functions
 
-def gt_bb_decoder(image: np.ndarray, bb_gt: tf.Tensor) -> LeapImageWithBBox:
+def gt_bb_decoder(image: np.ndarray, bb_gt: np.ndarray) -> LeapImageWithBBox:
     """
     This function overlays ground truth bounding boxes (BBs) on the input image.
 
@@ -238,43 +253,53 @@ def gt_bb_decoder(image: np.ndarray, bb_gt: tf.Tensor) -> LeapImageWithBBox:
     Returns:
     An instance of LeapImageWithBBox containing the input image with ground truth bounding boxes overlaid.
     """
+    image = np.squeeze(image)
     bb_object: List[BoundingBox] = bb_array_to_object(bb_gt, iscornercoded=False, bg_label=CONFIG['BACKGROUND_LABEL'],
                                                       is_gt=True)
     bb_object = [bbox for bbox in bb_object if bbox.label in CATEGORIES_no_background]
-    return LeapImageWithBBox(data=(image * 255).astype(np.float32), bounding_boxes=bb_object)
+    return LeapImageWithBBox(data=image.astype(np.float32), bounding_boxes=bb_object)
 
 
-def bb_car_gt_decoder(image: np.ndarray, bb_gt: tf.Tensor) -> LeapImageWithBBox:
+def bb_car_gt_decoder(image: np.ndarray, bb_gt: np.ndarray) -> LeapImageWithBBox:
     """
     Overlays the BB predictions on the image
     """
+    image = np.squeeze(image)
     bb_object: List[BoundingBox] = bb_array_to_object(bb_gt, iscornercoded=False, bg_label=CONFIG['BACKGROUND_LABEL'], is_gt=True)
     bb_object = [bbox for bbox in bb_object if bbox.label == 'car']
-    return LeapImageWithBBox(data=(image * 255).astype(np.float32), bounding_boxes=bb_object)
+    return LeapImageWithBBox(data=image.astype(np.float32), bounding_boxes=bb_object)
 
-def bb_decoder(image: np.ndarray, predictions: tf.Tensor) -> LeapImageWithBBox:
+def bb_decoder(image: np.ndarray, predictions: np.ndarray) -> LeapImageWithBBox:
     """
     Overlays the BB predictions on the image
     """
+    image = np.squeeze(image)
+    predictions = tf.convert_to_tensor(np.squeeze(predictions))
     bb_object = get_predict_bbox_list(predictions)
     bb_object = [bbox for bbox in bb_object if bbox.label in CATEGORIES_no_background]
-    return LeapImageWithBBox(data=(image * 255).astype(np.float32), bounding_boxes=bb_object)
+    return LeapImageWithBBox(data=image.astype(np.float32), bounding_boxes=bb_object)
 
-def bb_car_decoder(image: np.ndarray, predictions: tf.Tensor) -> LeapImageWithBBox:
+def bb_car_decoder(image: np.ndarray, predictions: np.ndarray) -> LeapImageWithBBox:
     """
     Overlays the BB predictions on the image
     """
+    image = np.squeeze(image)
+    predictions = tf.convert_to_tensor(np.squeeze(predictions))
     bb_object = get_predict_bbox_list(predictions)
     bb_object = [bbox for bbox in bb_object if bbox.label == 'car']
-    return LeapImageWithBBox(data=(image * 255).astype(np.float32), bounding_boxes=bb_object)
+    return LeapImageWithBBox(data=image.astype(np.float32), bounding_boxes=bb_object)
 
 
-def bus_bbox_cnt_pred(predictions: tf.Tensor) -> float:
-    if len(predictions.shape) == 2:
-        predictions = tf.expand_dims(predictions, 0)
-    bb_object = get_predict_bbox_list(predictions[0, ...])
-    bb_object = [bbox for bbox in bb_object if bbox.label == 'bus']
-    return float(len(bb_object))
+def bus_bbox_cnt_pred(predictions: np.ndarray) -> np.ndarray:
+    predictions = tf.convert_to_tensor(predictions)
+    # if len(predictions.shape) == 2:
+    #     predictions = tf.expand_dims(predictions, 0)
+    batch_counts = []
+    for i in range(predictions.shape[0]):
+        bb_object = get_predict_bbox_list(predictions[i, ...])
+        bb_object = [bbox for bbox in bb_object if bbox.label == 'bus']
+        batch_counts.append(float(len(bb_object)))
+    return np.array(batch_counts)
 
 # ---------------------------------------------------------binding------------------------------------------------------
 
@@ -320,5 +345,4 @@ leap_binder.add_custom_metric(bus_bbox_cnt_pred, 'bus_cnt_bbox_pred')
 leap_binder.add_custom_metric(iou_dic, "ious")
 
 
-if __name__ == '__main__':
-    leap_binder.check()
+
