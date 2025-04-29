@@ -185,8 +185,9 @@ def instances_num(valid_bbs) -> float:
     return float(valid_bbs.shape[0])
 
 def avg_bb_aspect_ratio(valid_bbs) -> float:
-    assert ((valid_bbs[:, 3] > 0).all())
-    aspect_ratios = valid_bbs[:, 2] / valid_bbs[:, 3]
+    valid_bbs_filtered = valid_bbs[valid_bbs[:, 3] > 0]
+    # assert ((valid_bbs[:, 3] > 0).all())
+    aspect_ratios = valid_bbs_filtered[:, 2] / valid_bbs_filtered[:, 3]
     return aspect_ratios.mean()
 
 def avg_bb_area_metadata(valid_bbs) -> float:
