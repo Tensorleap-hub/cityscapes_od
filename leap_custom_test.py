@@ -33,18 +33,21 @@ def check_custom_integration():
             concat = np.expand_dims(image, axis=0)
             y_pred = yolo([concat]).numpy()
             gt = np.expand_dims(bounding_boxes_gt, axis=0)
-            bb_gt_decoder = gt_bb_decoder(image, gt)
-            bb__decoder = bb_decoder(image, y_pred[0, ...])
-            bb_car = bb_car_decoder(image, y_pred[0, ...])
-            bb_gt_car = bb_car_gt_decoder(image, gt)
+
+            #vis
+            bb_gt_decoder = gt_bb_decoder(concat, gt)
+            bb__decoder = bb_decoder(concat, y_pred)
+            bb_car = bb_car_decoder(concat, y_pred)
+            bb_gt_car = bb_car_gt_decoder(concat, gt)
             if plot_vis:
                 visualize(bb_gt_decoder)
                 visualize(bb__decoder)
                 visualize(bb_car)
                 visualize(bb_gt_car)
+
             # get loss and custom metrics
             ls = od_loss(gt, y_pred)
-            metrices_all = od_metrics_dict(gt, y_pred)
+            metrics_all = od_metrics_dict(gt, y_pred)
             iou = iou_dic(gt, y_pred)
             bus_bbox = bus_bbox_cnt_pred(y_pred)
             for metadata_handler in leap_binder.setup_container.metadata:
