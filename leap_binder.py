@@ -240,6 +240,7 @@ def gt_bb_decoder(image: np.ndarray, bb_gt: np.ndarray) -> LeapImageWithBBox:
     Returns:
     An instance of LeapImageWithBBox containing the input image with ground truth bounding boxes overlaid.
     """
+    image = np.squeeze(image)
     bb_object: List[BoundingBox] = bb_array_to_object(bb_gt, iscornercoded=False, bg_label=CONFIG['BACKGROUND_LABEL'],
                                                       is_gt=True)
     bb_object = [bbox for bbox in bb_object if bbox.label in CATEGORIES_no_background]
@@ -250,6 +251,7 @@ def bb_car_gt_decoder(image: np.ndarray, bb_gt: np.ndarray) -> LeapImageWithBBox
     """
     Overlays the BB predictions on the image
     """
+    image = np.squeeze(image)
     bb_object: List[BoundingBox] = bb_array_to_object(bb_gt, iscornercoded=False, bg_label=CONFIG['BACKGROUND_LABEL'],
                                                       is_gt=True)
     bb_object = [bbox for bbox in bb_object if bbox.label == 'car']
@@ -260,6 +262,8 @@ def bb_decoder(image: np.ndarray, predictions: np.ndarray) -> LeapImageWithBBox:
     """
     Overlays the BB predictions on the image
     """
+    image = np.squeeze(image)
+    predictions = np.squeeze(predictions)
     bb_object = get_predict_bbox_list(predictions)
     bb_object = [bbox for bbox in bb_object if bbox.label in CATEGORIES_no_background]
     return LeapImageWithBBox(data=(image * 255).astype(np.uint8), bounding_boxes=bb_object)
@@ -269,6 +273,8 @@ def bb_car_decoder(image: np.ndarray, predictions: np.ndarray) -> LeapImageWithB
     """
     Overlays the BB predictions on the image
     """
+    image = np.squeeze(image)
+    predictions = np.squeeze(predictions)
     bb_object = get_predict_bbox_list(predictions)
     bb_object = [bbox for bbox in bb_object if bbox.label == 'car']
     return LeapImageWithBBox(data=(image * 255).astype(np.uint8), bounding_boxes=bb_object)
