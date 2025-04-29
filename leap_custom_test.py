@@ -9,13 +9,13 @@ from cityscapes_od.utils.plots import plot_image_with_polygons, plot_image_with_
 from leap_binder import load_cityscapes_data_leap, ground_truth_bbox, \
     od_metrics_dict, gt_bb_decoder, bb_decoder, bb_car_decoder, bb_car_gt_decoder, metadata_filename, metadata_city, \
     metadata_idx, metadata_brightness, metadata_json, metadata_category_avg_size, metadata_bbs, label_instances_num, \
-    is_class_exist_gen, is_class_exist_veg_and_building, get_class_mean_iou, encode_image, bus_bbox_cnt_pred
+    is_class_exist_gen, is_class_exist_veg_and_building, get_class_mean_iou, encode_image, bus_bbox_cnt_pred, iou_dic
 from os import environ
 from leap_binder import leap_binder
 from code_loader.helpers import visualize
 
 def check_custom_integration():
-    plot_vis = True
+    plot_vis = False
     check_generic = True
 
     if check_generic:
@@ -71,6 +71,7 @@ def check_custom_integration():
         ls = od_loss(gt, y_pred.numpy())
         metrics_all = od_metrics_dict(gt, y_pred.numpy())
         bus_bbox = bus_bbox_cnt_pred(y_pred.numpy())
+        iou_dic_ = iou_dic(gt, y_pred.numpy())
         for id in CATEGORIES_id_no_background:
             iou_func = get_class_mean_iou(id)
             iou = iou_func(gt, y_pred.numpy())

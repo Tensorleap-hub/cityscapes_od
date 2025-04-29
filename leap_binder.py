@@ -210,25 +210,27 @@ def get_class_mean_iou(class_id: int) -> Callable[[np.ndarray, np.ndarray], np.n
     return class_mean_iou
 
 
-def class_mean_iou(y_true: tf.Tensor, y_pred: tf.Tensor, class_id: str) -> tf.Tensor:
+def class_mean_iou(y_true: tf.Tensor, y_pred: tf.Tensor, class_id: int) -> tf.Tensor:
     iou = calculate_iou(y_true, y_pred, class_id)
     return tf.convert_to_tensor(np.array([iou]), dtype=tf.float32)
 
 
-def iou_dic(y_true: tf.Tensor, y_pred: tf.Tensor) -> dict:
-    if len(y_true.shape) == 2:
-        y_true = tf.expand_dims(y_true, 0)
-    if len(y_pred.shape) == 2:
-        y_pred = tf.expand_dims(y_pred, 0)
+def iou_dic(y_true: np.ndarray, y_pred: np.ndarray) -> Dict[str, np.ndarray]:
+    y_true = tf.convert_to_tensor(y_true)
+    y_pred = tf.convert_to_tensor(y_pred)
+    # if len(y_true.shape) == 2:
+    #     y_true = tf.expand_dims(y_true, 0)
+    # if len(y_pred.shape) == 2:
+    #     y_pred = tf.expand_dims(y_pred, 0)
     res_dic = dict()
     mean_iou = list()
     for c_id in CATEGORIES_id_no_background:
         class_name = Cityscapes.get_class_name(c_id)
         res = class_mean_iou(y_true, y_pred, c_id)
-        res_dic[f"{class_name}"] = res
+        res_dic[f"{class_name}"] = res.numpy()
         if tf.reduce_sum(res) > 0:
             mean_iou += [res]   # todo multiply by pixels
-    res_dic["meanIOU"] = tf.reduce_mean(mean_iou, 0) if len(mean_iou) > 0 else tf.zeros(shape=(1))
+    res_dic["meanIOU"] = (tf.reduce_mean(mean_iou, 0) if len(mean_iou) > 0 else tf.zeros(shape=1)).numpy()
     return res_dic
 
 
