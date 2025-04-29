@@ -7,7 +7,7 @@ from code_loader.helpers.detection.yolo.utils import reshape_output_list
 
 from cityscapes_od.data.preprocess import Cityscapes, CATEGORIES_no_background, CATEGORIES_id_no_background
 from cityscapes_od.config import CONFIG
-
+import numpy as np
 
 def compute_losses(obj_true: tf.Tensor, od_pred: tf.Tensor) -> Tuple[tf.Tensor, tf.Tensor, tf.Tensor]:
     """
@@ -21,15 +21,15 @@ def compute_losses(obj_true: tf.Tensor, od_pred: tf.Tensor) -> Tuple[tf.Tensor, 
     return loss_l, loss_c, loss_o
 
 
-def od_loss(bb_gt: tf.Tensor, y_pred: tf.Tensor) -> tf.Tensor:  # return batch
+def od_loss(bb_gt: np.ndarray, y_pred: np.ndarray) -> np.ndarray:  # return batch
     """
     Sums the classification and regression loss
     """
-    loss_l, loss_c, loss_o = compute_losses(bb_gt, y_pred)
+    loss_l, loss_c, loss_o = compute_losses(tf.convert_to_tensor(bb_gt), tf.convert_to_tensor(y_pred))
     combined_losses = [l + c + o for l, c, o in zip(loss_l, loss_c, loss_o)]
     sum_loss = tf.reduce_sum(combined_losses, axis=0)
     non_nan_loss = tf.where(tf.math.is_nan(sum_loss), tf.zeros_like(sum_loss), sum_loss)  # LOSS 0 for NAN losses
-    return non_nan_loss
+    return non_nan_loss.numpy()
 
 
 def calc_od_losses(bb_gt: tf.Tensor, detection_pred: tf.Tensor) -> Tuple[Any, Any, Any]:  # return batch
