@@ -23,6 +23,7 @@ from code_loader.contract.datasetclasses import PreprocessResponse
 from code_loader.contract.enums import (
     LeapDataType
 )
+from code_loader.utils import rescale_min_max
 
 # ----------------------------------------------------data processing--------------------------------------------------
 def load_cityscapes_data_leap() -> List[PreprocessResponse]:
@@ -256,10 +257,11 @@ def gt_bb_decoder(image: np.ndarray, bb_gt: np.ndarray) -> LeapImageWithBBox:
     An instance of LeapImageWithBBox containing the input image with ground truth bounding boxes overlaid.
     """
     image = np.squeeze(image)
+    image = rescale_min_max(image)
     bb_object: List[BoundingBox] = bb_array_to_object(bb_gt, iscornercoded=False, bg_label=CONFIG['BACKGROUND_LABEL'],
                                                       is_gt=True)
     bb_object = [bbox for bbox in bb_object if bbox.label in CATEGORIES_no_background]
-    return LeapImageWithBBox(data=image.astype(np.float32), bounding_boxes=bb_object)
+    return LeapImageWithBBox(data=image, bounding_boxes=bb_object)
 
 
 def bb_car_gt_decoder(image: np.ndarray, bb_gt: np.ndarray) -> LeapImageWithBBox:
@@ -267,29 +269,35 @@ def bb_car_gt_decoder(image: np.ndarray, bb_gt: np.ndarray) -> LeapImageWithBBox
     Overlays the BB predictions on the image
     """
     image = np.squeeze(image)
+    image = rescale_min_max(image)
+
     bb_object: List[BoundingBox] = bb_array_to_object(bb_gt, iscornercoded=False, bg_label=CONFIG['BACKGROUND_LABEL'], is_gt=True)
     bb_object = [bbox for bbox in bb_object if bbox.label == 'car']
-    return LeapImageWithBBox(data=image.astype(np.float32), bounding_boxes=bb_object)
+    return LeapImageWithBBox(data=image, bounding_boxes=bb_object)
 
 def bb_decoder(image: np.ndarray, predictions: np.ndarray) -> LeapImageWithBBox:
     """
     Overlays the BB predictions on the image
     """
     image = np.squeeze(image)
+    image = rescale_min_max(image)
+
     predictions = tf.convert_to_tensor(np.squeeze(predictions))
     bb_object = get_predict_bbox_list(predictions)
     bb_object = [bbox for bbox in bb_object if bbox.label in CATEGORIES_no_background]
-    return LeapImageWithBBox(data=image.astype(np.float32), bounding_boxes=bb_object)
+    return LeapImageWithBBox(data=image, bounding_boxes=bb_object)
 
 def bb_car_decoder(image: np.ndarray, predictions: np.ndarray) -> LeapImageWithBBox:
     """
     Overlays the BB predictions on the image
     """
     image = np.squeeze(image)
+    image = rescale_min_max(image)
+
     predictions = tf.convert_to_tensor(np.squeeze(predictions))
     bb_object = get_predict_bbox_list(predictions)
     bb_object = [bbox for bbox in bb_object if bbox.label == 'car']
-    return LeapImageWithBBox(data=image.astype(np.float32), bounding_boxes=bb_object)
+    return LeapImageWithBBox(data=image, bounding_boxes=bb_object)
 
 
 def bus_bbox_cnt_pred(predictions: np.ndarray) -> np.ndarray:

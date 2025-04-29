@@ -15,7 +15,7 @@ from leap_binder import leap_binder
 from code_loader.helpers import visualize
 
 def check_custom_integration():
-    plot_vis = False
+    plot_vis = True
     check_generic = True
 
     if check_generic:
@@ -31,68 +31,71 @@ def check_custom_integration():
     val = responses[1]
     test = responses[2]
     responses_set = train
-    for idx in range(3):
-        # model
-        dir_path = os.path.dirname(os.path.abspath(__file__))
-        model_path = 'model/CSYolov7Retrained.h5'
-        yolo = tf.keras.models.load_model(os.path.join(dir_path, model_path))
+    for responses_set in responses:
+        for idx in range(responses_set.length):
+            print(f"idx: {idx}")
+            if idx == 178:
+                # model
+                dir_path = os.path.dirname(os.path.abspath(__file__))
+                model_path = 'model/CSYolov7Retrained.h5'
+                yolo = tf.keras.models.load_model(os.path.join(dir_path, model_path))
 
-        # get input and gt
-        image = encode_image(idx, responses_set)
-        bounding_boxes_gt = ground_truth_bbox(idx, responses_set)
+                # get input and gt
+                image = encode_image(idx, responses_set)
+                bounding_boxes_gt = ground_truth_bbox(idx, responses_set)
 
-        json_data = get_json(idx, responses_set)
-        image_height, image_width = json_data['imgHeight'], json_data['imgWidth']
-        polygons = get_polygon(json_data)
+                json_data = get_json(idx, responses_set)
+                image_height, image_width = json_data['imgHeight'], json_data['imgWidth']
+                polygons = get_polygon(json_data)
 
-        concat = np.expand_dims(image, axis=0)
-        y_pred = yolo([concat])
-        gt = np.expand_dims(bounding_boxes_gt, axis=0)
+                concat = np.expand_dims(image, axis=0)
+                y_pred = yolo([concat])
+                gt = np.expand_dims(bounding_boxes_gt, axis=0)
 
-        # get visualizer
-        bb_gt_decoder = gt_bb_decoder(concat, gt)
-        bb__decoder = bb_decoder(concat, y_pred.numpy())
-        bb_gt_car = bb_car_gt_decoder(concat, gt)
-        bb_car = bb_car_decoder(concat, y_pred.numpy())
+                # get visualizer
+                bb_gt_decoder = gt_bb_decoder(concat, gt)
+                bb__decoder = bb_decoder(concat, y_pred.numpy())
+                bb_gt_car = bb_car_gt_decoder(concat, gt)
+                bb_car = bb_car_decoder(concat, y_pred.numpy())
 
-        if plot_vis:
-            visualize(bb_gt_decoder, 'gt')
-            visualize(bb__decoder, 'pred')
-            visualize(bb_car, 'pred')
-            visualize(bb_gt_car, 'gt')
+                if plot_vis:
+                    visualize(bb_gt_decoder, 'gt')
+                    visualize(bb__decoder, 'pred')
+                    visualize(bb_car, 'pred')
+                    visualize(bb_gt_car, 'gt')
 
-            # plot_image_with_bboxes(image, bb_gt_decoder.bounding_boxes, 'gt')
-            # plot_image_with_bboxes(image, bb__decoder.bounding_boxes, 'pred')
-            # plot_image_with_bboxes(image, bb_car.bounding_boxes, 'pred')
-            # plot_image_with_bboxes(image, bb_gt_car.bounding_boxes, 'gt')
-            plot_image_with_polygons(image_height, image_width, polygons, image)
+                    # plot_image_with_bboxes(image, bb_gt_decoder.bounding_boxes, 'gt')
+                    # plot_image_with_bboxes(image, bb__decoder.bounding_boxes, 'pred')
+                    # plot_image_with_bboxes(image, bb_car.bounding_boxes, 'pred')
+                    # plot_image_with_bboxes(image, bb_gt_car.bounding_boxes, 'gt')
+                    plot_image_with_polygons(image_height, image_width, polygons, image)
 
-        # get loss and custom metrics
-        ls = od_loss(gt, y_pred.numpy())
-        metrics_all = od_metrics_dict(gt, y_pred.numpy())
-        bus_bbox = bus_bbox_cnt_pred(y_pred.numpy())
-        iou_dic_ = iou_dic(gt, y_pred.numpy())
-        for id in CATEGORIES_id_no_background:
-            iou_func = get_class_mean_iou(id)
-            iou = iou_func(gt, y_pred.numpy())
+                # get loss and custom metrics
+                ls = od_loss(gt, y_pred.numpy())
+                metrics_all = od_metrics_dict(gt, y_pred.numpy())
+                bus_bbox = bus_bbox_cnt_pred(y_pred.numpy())
+                iou_dic_ = iou_dic(gt, y_pred.numpy())
+                for id in CATEGORIES_id_no_background:
+                    iou_func = get_class_mean_iou(id)
+                    iou = iou_func(gt, y_pred.numpy())
 
-        # get custom meta data
-        filename = metadata_filename(idx, responses_set)
-        city = metadata_city(idx, responses_set)
-        idx = metadata_idx(idx, responses_set)
-        brightness = metadata_brightness(idx, responses_set)
-        json = metadata_json(idx, responses_set)
-        category_avg_size = metadata_category_avg_size(idx, responses_set)
-        bbs = metadata_bbs(idx, responses_set)
-        for label in CATEGORIES_no_background:
-            instances_count_func = label_instances_num(label)
-            instance_count = instances_count_func(idx, responses_set)
-        for id in CATEGORIES_id_no_background:
-            class_name = Cityscapes.get_class_name(id)
-            class_exist_gen_func = is_class_exist_gen(id)
-            class_exist_gen = class_exist_gen_func(idx, responses_set)
-        class_exist_veg_func = is_class_exist_veg_and_building(21, 11)
-        class_exist_veg = class_exist_veg_func(idx, responses_set)
+                # get custom meta data
+                filename = metadata_filename(idx, responses_set)
+                city = metadata_city(idx, responses_set)
+                idx = metadata_idx(idx, responses_set)
+                brightness = metadata_brightness(idx, responses_set)
+                json = metadata_json(idx, responses_set)
+                category_avg_size = metadata_category_avg_size(idx, responses_set)
+                bbs = metadata_bbs(idx, responses_set)
+                for label in CATEGORIES_no_background:
+                    instances_count_func = label_instances_num(label)
+                    instance_count = instances_count_func(idx, responses_set)
+                for id in CATEGORIES_id_no_background:
+                    class_name = Cityscapes.get_class_name(id)
+                    class_exist_gen_func = is_class_exist_gen(id)
+                    class_exist_gen = class_exist_gen_func(idx, responses_set)
+                class_exist_veg_func = is_class_exist_veg_and_building(21, 11)
+                class_exist_veg = class_exist_veg_func(idx, responses_set)
 
 
     print("Custom tests finished successfully")
