@@ -1,9 +1,10 @@
-codeIntegrationId: 67a9b241755c23a6a889811c
-projectId: 67a9b23c755c23a6a8898116
-secretId: 679f5add978bed5bf1d58705
+codeIntegrationId: 687363dd82435f023ae05fdd
+projectId: 687363d782435f023ae05fd7
+secretId: 680f96015788a73c7f895551
 entryFile: leap_binder.py
 include:
     - leap_binder.py
+    - requirements.txt
     - cityscapes_od/data/preprocess.py
     - cityscapes_od/utils/gcs_utils.py
     - cityscapes_od/utils/general_utils.py
@@ -12,3 +13,4 @@ include:
     - cityscapes_od/metrics.py
     - cityscapes_od/od_config.yaml
     - cityscapes_od/plots.py
+pythonVersion: py38
