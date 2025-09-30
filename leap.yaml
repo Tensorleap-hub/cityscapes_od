@@ -1,8 +1,9 @@
-codeIntegrationId: 687363dd82435f023ae05fdd
-projectId: 687363d782435f023ae05fd7
-secretId: 680f96015788a73c7f895551
-entryFile: leap_binder.py
+codeIntegrationId: 68db7a202de5b0698cd1f473
+projectId: 68db7a1b2de5b0698cd1f46d
+secretId: 68b946bee270ac55c200a64f
+entryFile: leap_integration.py
 include:
+    - leap_integration.py
     - leap_binder.py
     - requirements.txt
     - cityscapes_od/data/preprocess.py

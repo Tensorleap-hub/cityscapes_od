@@ -281,7 +281,6 @@ def bb_car_decoder(image: np.ndarray, predictions: np.ndarray) -> LeapImageWithB
 
 # ---------------------------------------------------------binding------------------------------------------------------
 # set prediction
-leap_binder.add_prediction(name='object detection', labels=["x", "y", "w", "h", "obj"] + [cl for cl in CATEGORIES])
 
 if __name__ == '__main__':
     leap_binder.check()
