@@ -31,10 +31,6 @@ def load_cityscapes_data_leap() -> List[PreprocessResponse]:
     all_images, all_gt_images, all_gt_labels, all_gt_labels_for_bbx, all_file_names, all_metadata, all_cities = \
         load_cityscapes_data()
 
-    # train_len = len(all_images[0])
-    # val_len = len(all_images[1])
-    # test_len = len(all_images[2])
-
     train_len = 700
     val_len = 100
     test_len = 200

@@ -34,7 +34,7 @@ def od_loss(bb_gt: np.ndarray, y_pred: np.ndarray) -> np.ndarray:  # return batc
     combined_losses = [l + c + o for l, c, o in zip(loss_l, loss_c, loss_o)]
     sum_loss = np.sum(combined_losses, axis=0)
     non_nan_loss = np.where(np.isnan(sum_loss), np.zeros_like(sum_loss), sum_loss)
-    return non_nan_loss
+    return non_nan_loss.squeeze(0)
 
 
 def calc_od_losses(bb_gt: np.ndarray, detection_pred: np.ndarray) -> Tuple[Any, Any, Any]:  # return batch

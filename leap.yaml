@@ -1,6 +1,6 @@
-codeIntegrationId: 68db7a202de5b0698cd1f473
-projectId: 68db7a1b2de5b0698cd1f46d
-secretId: 68b946bee270ac55c200a64f
+codeIntegrationId: 69070ee6fcfae1a75a5fd350
+projectId: 69070edffcfae1a75a5fd349
+secretId: 690706b6fcfae1a75a5fd2ce
 entryFile: leap_integration.py
 include:
     - leap_integration.py

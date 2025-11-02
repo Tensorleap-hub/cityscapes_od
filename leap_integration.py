@@ -12,7 +12,7 @@ from leap_binder import (load_cityscapes_data_leap, ground_truth_bbox, \
                          encode_image, iou_dic, bus_bbox_cnt_pred, leap_binder, misc_metadata, metadata_json,
                          gt_all_bbox_count, metadata_category_avg_size, metadata_bbs)
 from os import environ
-from code_loader.inner_leap_binder.leapbinder_decorators import tensorleap_load_model, integration_test
+from code_loader.inner_leap_binder.leapbinder_decorators import tensorleap_load_model, tensorleap_integration_test
 
 
 
@@ -24,7 +24,7 @@ def load_model():
     model_path = 'model/CSYolov7.h5'
     return tf.keras.models.load_model(os.path.join(dir_path, model_path))
 
-@integration_test()
+@tensorleap_integration_test()
 def check_custom_test(idx, responses_set):
     yolo = load_model()
 
