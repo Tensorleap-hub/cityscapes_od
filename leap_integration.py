@@ -16,7 +16,7 @@ from code_loader.inner_leap_binder.leapbinder_decorators import tensorleap_load_
 
 
 
-prediction_type1 = PredictionTypeHandler('object detection', ["x", "y", "w", "h", "obj"] + [cl for cl in CATEGORIES])
+prediction_type1 = PredictionTypeHandler('object detection', ["x", "y", "w", "h", "obj"] + [cl for cl in CATEGORIES],channel_dim=-1)
 
 @tensorleap_load_model([prediction_type1])
 def load_model():

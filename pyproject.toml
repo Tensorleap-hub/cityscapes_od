@@ -18,7 +18,7 @@ utils = "^1.0.1"
 onnx = "^1.14.0"
 opencv-python = "^4.8.0.74"
 webcolors = "^1.13"
-code-loader = "^1.0.145"
+code-loader = "^1.0.152"
 code-loader-helpers = "1.0.20"
 
 

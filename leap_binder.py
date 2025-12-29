@@ -54,7 +54,7 @@ def load_cityscapes_data_leap() -> List[PreprocessResponse]:
 
 
 # ------------------------------------------input and gt------------------------------------------
-@tensorleap_input_encoder('image')
+@tensorleap_input_encoder('image',channel_dim=-1)
 def encode_image(idx: int, data: PreprocessResponse) -> np.ndarray:
     data = data.data
     cloud_path = data['image_path'][idx]
@@ -204,7 +204,7 @@ def iou_dic(y_true: np.ndarray, y_pred: np.ndarray) -> Dict[str, Union[float, in
 
 
 #leap_binder.add_custom_metric(od_metrics_dict, 'od_metrics')
-@tensorleap_custom_metric('od_metrics_dict')
+@tensorleap_custom_metric('od_metrics_dict', direction=MetricDirection.Downward)
 def od_metrics_dict(bb_gt: np.ndarray, detection_pred: np.ndarray) -> Dict[str, np.ndarray]:
     losses = calc_od_losses(bb_gt, detection_pred)
     metric_functions = {
